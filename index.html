@@ -206,18 +206,23 @@
         .category-tag .delete-tag { cursor: pointer; color: var(--color-danger); font-weight: bold; }
         
         /* Responsive */
+        .mobile-menu-btn { display: none; position: fixed; top: 20px; left: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: var(--radius-md); background: var(--bg-sidebar); color: var(--text-inverse); border: none; font-size: 1.5rem; cursor: pointer; box-shadow: var(--shadow-lg); }
+        .mobile-menu-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        .mobile-menu-overlay.active { display: block; }
         @media (max-width: 1024px) {
+            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
             .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
             .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; }
+            .main-content { margin-left: 0; padding-top: 80px; }
             .form-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 768px) {
-            .main-content { padding: 20px; }
+            .main-content { padding: 80px 20px 20px; }
             .page-title { font-size: 1.75rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .controls-row { flex-direction: column; }
             .search-wrapper { width: 100%; }
+            .filter-select { width: 100%; }
             .items-grid { grid-template-columns: 1fr; }
             .items-table { font-size: 0.85rem; }
             .items-table th, .items-table td { padding: 10px 8px; }
@@ -255,6 +260,10 @@
     </div>
 
     <div class="app-container" id="appContainer" style="display:none;">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+        <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="toggleMobileMenu()"></div>
+        
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="logo">
@@ -266,6 +275,7 @@
                     <li class="nav-item"><a class="nav-link" data-page="lagerplaetze"><span class="nav-icon">📦</span><span>Lagerplätze</span></a></li>
                     <li class="nav-item"><a class="nav-link" data-page="kategorien"><span class="nav-icon">🏷️</span><span>Kategorien</span></a></li>
                     <li class="nav-item"><a class="nav-link" data-page="scanner"><span class="nav-icon">📱</span><span>QR-Scanner</span></a></li>
+                    <li class="nav-item"><a class="nav-link" data-page="papierkorb"><span class="nav-icon">🗑️</span><span>Papierkorb</span></a></li>
                 </ul>
             </nav>
             <div class="connection-status">
@@ -371,6 +381,22 @@
                     <div id="qr-reader"></div>
                     <div id="scannerResult"></div>
                 </div>
+            </div>
+
+            <!-- Papierkorb Page -->
+            <div id="page-papierkorb" class="page" style="display:none;">
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h1 class="page-title">🗑️ Papierkorb</h1>
+                        <p class="page-subtitle">Gelöschte Elemente wiederherstellen oder endgültig löschen</p>
+                    </div>
+                </div>
+                <div class="controls-bar">
+                    <div class="controls-row">
+                        <button class="btn btn-danger" onclick="emptyTrash()"><span>🗑️</span><span>Papierkorb leeren</span></button>
+                    </div>
+                </div>
+                <div class="items-grid" id="trashGrid"></div>
             </div>
         </main>
     </div>
@@ -577,6 +603,7 @@
         let items = [];
         let locations = [];
         let categories = [];
+        let trash = [];
         let currentEditId = null;
         let currentLocationId = null;
         let currentView = 'grid';
@@ -584,6 +611,14 @@
         let relocateItemId = null;
         let tempSubCategories = [];
         let html5QrCode = null;
+
+        // Mobile Menu Toggle
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
 
         // Auth
         auth.onAuthStateChanged((user) => {
@@ -646,6 +681,12 @@
                 updateStats();
             });
 
+            database.ref('papierkorb').on('value', (snapshot) => {
+                trash = [];
+                snapshot.forEach((child) => { trash.push({ id: child.key, ...child.val() }); });
+                renderTrash();
+            });
+
             // Navigation
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', () => {
@@ -655,6 +696,11 @@
                     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
                     document.getElementById(`page-${page}`).style.display = 'block';
                     if (page === 'scanner') startScanner();
+                    // Close mobile menu after navigation
+                    if (window.innerWidth <= 1024) {
+                        document.getElementById('sidebar').classList.remove('open');
+                        document.getElementById('mobileMenuOverlay').classList.remove('active');
+                    }
                 });
             });
 
@@ -1044,10 +1090,15 @@
             document.getElementById('itemModal').classList.add('active');
         }
 
-        // Delete Item
+        // Delete Item (move to trash)
         function deleteItem(id) {
             const item = items.find(i => i.id === id);
-            showConfirm('Werkzeug löschen', `Möchtest du "${item.name}" wirklich löschen?`, 'Diese Aktion kann nicht rückgängig gemacht werden.', () => {
+            showConfirm('Werkzeug löschen', `Möchtest du "${item.name}" in den Papierkorb verschieben?`, 'Du kannst es später wiederherstellen.', () => {
+                // Copy to trash
+                const trashItem = { ...item, type: 'werkzeug', deletedAt: new Date().toISOString() };
+                delete trashItem.id;
+                database.ref('papierkorb').push(trashItem);
+                // Remove from items
                 database.ref('werkzeuge/' + id).remove();
             });
         }
@@ -1088,11 +1139,16 @@
             QRCode.toCanvas(document.getElementById('qrCanvas'), currentLocationId, { width: 250, margin: 2 });
         }
 
-        // Delete Location
+        // Delete Location (move to trash)
         function deleteLocation(id) {
             const loc = locations.find(l => l.id === id);
             const itemCount = items.filter(i => i.zone === loc.zone && (!loc.regal || i.regal === loc.regal)).length;
-            showConfirm('Lagerplatz löschen', `Möchtest du "${loc.name}" wirklich löschen?`, itemCount > 0 ? `Achtung: ${itemCount} Werkzeuge sind diesem Lagerplatz zugeordnet!` : null, () => {
+            showConfirm('Lagerplatz löschen', `Möchtest du "${loc.name}" in den Papierkorb verschieben?`, itemCount > 0 ? `Achtung: ${itemCount} Werkzeuge sind diesem Lagerplatz zugeordnet!` : null, () => {
+                // Copy to trash
+                const trashItem = { ...loc, type: 'lagerplatz', deletedAt: new Date().toISOString() };
+                delete trashItem.id;
+                database.ref('papierkorb').push(trashItem);
+                // Remove from locations
                 database.ref('lagerplaetze/' + id).remove();
             });
         }
@@ -1123,11 +1179,16 @@
             document.getElementById('categoryModal').classList.add('active');
         }
 
-        // Delete Category
+        // Delete Category (move to trash)
         function deleteCategory(id) {
             const cat = categories.find(c => c.id === id);
             const itemCount = items.filter(i => i.mainCategory === cat.name).length;
-            showConfirm('Kategorie löschen', `Möchtest du "${cat.name}" wirklich löschen?`, itemCount > 0 ? `Achtung: ${itemCount} Werkzeuge nutzen diese Kategorie!` : null, () => {
+            showConfirm('Kategorie löschen', `Möchtest du "${cat.name}" in den Papierkorb verschieben?`, itemCount > 0 ? `Achtung: ${itemCount} Werkzeuge nutzen diese Kategorie!` : null, () => {
+                // Copy to trash
+                const trashItem = { ...cat, type: 'kategorie', deletedAt: new Date().toISOString() };
+                delete trashItem.id;
+                database.ref('papierkorb').push(trashItem);
+                // Remove from categories
                 database.ref('kategorien/' + id).remove();
             });
         }
@@ -1187,6 +1248,71 @@
                     ${locItems.length > 0 ? locItems.map(i => `<div style="padding:12px; background:var(--bg-hover); border-radius:var(--radius-md); margin-bottom:8px; display:flex; justify-content:space-between;"><span><strong>${i.name}</strong></span><span>${i.quantity}x</span></div>`).join('') : '<p style="color:var(--text-muted);">Keine Werkzeuge an diesem Lagerplatz</p>'}
                     <button class="btn btn-primary" onclick="html5QrCode = null; startScanner();" style="margin-top:16px; width:100%; justify-content:center;">Erneut scannen</button>
                 </div>`;
+        }
+
+        // Render Trash
+        function renderTrash() {
+            const grid = document.getElementById('trashGrid');
+            if (trash.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🗑️</div><div class="empty-title">Papierkorb ist leer</div><div class="empty-text">Gelöschte Elemente erscheinen hier</div></div>`;
+                return;
+            }
+            grid.innerHTML = trash.map(item => {
+                const typeIcon = item.type === 'werkzeug' ? '🔧' : item.type === 'lagerplatz' ? '📦' : '🏷️';
+                const typeName = item.type === 'werkzeug' ? 'Werkzeug' : item.type === 'lagerplatz' ? 'Lagerplatz' : 'Kategorie';
+                const deletedDate = new Date(item.deletedAt).toLocaleDateString('de-DE');
+                return `
+                    <div class="item-card">
+                        <div class="item-content">
+                            <div class="item-name">${typeIcon} ${item.name}</div>
+                            <div class="item-badges">
+                                <span class="badge badge-category">${typeName}</span>
+                                <span class="badge badge-location">Gelöscht: ${deletedDate}</span>
+                            </div>
+                            <div class="item-actions" style="margin-top:16px;">
+                                <button class="btn btn-primary btn-sm" onclick="restoreItem('${item.id}')">♻️ Wiederherstellen</button>
+                                <button class="btn btn-danger btn-sm" onclick="permanentDelete('${item.id}')">🗑️ Endgültig</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // Restore Item from Trash
+        function restoreItem(id) {
+            const item = trash.find(t => t.id === id);
+            if (!item) return;
+            const restoreData = { ...item };
+            delete restoreData.id;
+            delete restoreData.type;
+            delete restoreData.deletedAt;
+            
+            // Restore to original collection
+            if (item.type === 'werkzeug') {
+                database.ref('werkzeuge').push(restoreData);
+            } else if (item.type === 'lagerplatz') {
+                database.ref('lagerplaetze').push(restoreData);
+            } else if (item.type === 'kategorie') {
+                database.ref('kategorien').push(restoreData);
+            }
+            // Remove from trash
+            database.ref('papierkorb/' + id).remove();
+        }
+
+        // Permanent Delete from Trash
+        function permanentDelete(id) {
+            const item = trash.find(t => t.id === id);
+            showConfirm('Endgültig löschen', `Möchtest du "${item.name}" endgültig löschen?`, 'Diese Aktion kann nicht rückgängig gemacht werden!', () => {
+                database.ref('papierkorb/' + id).remove();
+            });
+        }
+
+        // Empty Trash
+        function emptyTrash() {
+            if (trash.length === 0) return;
+            showConfirm('Papierkorb leeren', `Möchtest du alle ${trash.length} Elemente endgültig löschen?`, 'Diese Aktion kann nicht rückgängig gemacht werden!', () => {
+                database.ref('papierkorb').remove();
+            });
         }
     </script>
 </body>
