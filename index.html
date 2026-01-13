@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0ea5e9">
+    <title>Werkzeug-Lager Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-primary-dark: #0284c7;
+            --color-secondary: #8b5cf6;
+            --color-accent: #f59e0b;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-sidebar: #1e293b;
+            --bg-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --text-inverse: #ffffff;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.15);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-main); color: var(--text-primary); line-height: 1.6; }
+        .app-container { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { width: 280px; background: var(--bg-sidebar); color: var(--text-inverse); padding: 30px 0; position: fixed; height: 100vh; overflow-y: auto; box-shadow: var(--shadow-lg); z-index: 1000; }
+        .logo { padding: 0 30px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }
+        .logo h1 { font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .nav-menu { list-style: none; }
+        .nav-item { padding: 0 20px; margin-bottom: 8px; }
+        .nav-link { display: flex; align-items: center; gap: 15px; padding: 15px 20px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: var(--radius-md); transition: var(--transition); cursor: pointer; font-weight: 500; }
+        .nav-link:hover { background: rgba(255,255,255,0.1); color: var(--text-inverse); }
+        .nav-link.active { background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: var(--text-inverse); }
+        .nav-icon { font-size: 1.25rem; width: 24px; text-align: center; }
+        .connection-status { padding: 0 30px; margin-top: 30px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .status-indicator { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; color: rgba(255,255,255,0.6); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); animation: pulse 2s infinite; }
+        .status-dot.connected { background: var(--color-success); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Main Content */
+        .main-content { flex: 1; margin-left: 280px; padding: 40px; }
+        .page-header { margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .page-header-left {}
+        .page-title { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .page-subtitle { color: var(--text-secondary); font-size: 1.125rem; }
+        
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 40px; }
+        .stat-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md); transition: var(--transition); border: 1px solid var(--border-color); }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .stat-icon { width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 16px; }
+        .stat-icon.blue { background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(139, 92, 246, 0.15)); color: var(--color-primary); }
+        .stat-icon.purple { background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15)); color: var(--color-secondary); }
+        .stat-icon.amber { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 146, 60, 0.15)); color: var(--color-accent); }
+        .stat-icon.green { background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15)); color: var(--color-success); }
+        .stat-label { color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
+        
+        /* Controls */
+        .controls-bar { background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
+        .controls-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-wrapper { position: relative; flex: 1; min-width: 200px; }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-input { width: 100%; padding: 12px 12px 12px 42px; border: 2px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.95rem; font-family: inherit; transition: var(--transition); background: var(--bg-main); }
+        .search-input:focus { outline: none; border-color: var(--color-primary); background: var(--bg-card); }
+        .filter-select { padding: 12px 16px; border: 2px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.95rem; font-family: inherit; background: var(--bg-card); cursor: pointer; transition: var(--transition); min-width: 150px; }
+        .filter-select:hover, .filter-select:focus { border-color: var(--color-primary); outline: none; }
+        
+        /* Buttons */
+        .btn { padding: 12px 20px; border: none; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; text-decoration: none; white-space: nowrap; }
+        .btn-primary { background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: var(--text-inverse); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
+        .btn-secondary { background: var(--bg-card); color: var(--text-primary); border: 2px solid var(--border-color); }
+        .btn-secondary:hover { border-color: var(--color-primary); color: var(--color-primary); }
+        .btn-danger { background: var(--color-danger); color: var(--text-inverse); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 8px 14px; font-size: 0.85rem; }
+        .btn-icon { padding: 10px; min-width: auto; }
+        
+        /* View Toggle */
+        .view-toggle { display: flex; background: var(--bg-main); border-radius: var(--radius-md); padding: 4px; }
+        .view-toggle-btn { padding: 8px 16px; border: none; background: transparent; cursor: pointer; border-radius: var(--radius-sm); transition: var(--transition); font-size: 1rem; }
+        .view-toggle-btn.active { background: var(--bg-card); box-shadow: var(--shadow-sm); }
+        
+        /* Grid View */
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .item-card { background: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); transition: var(--transition); border: 1px solid var(--border-color); }
+        .item-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--color-primary); }
+        .item-image { width: 100%; height: 160px; background: linear-gradient(135deg, #f1f5f9, #e2e8f0); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: var(--text-muted); position: relative; overflow: hidden; }
+        .item-image img { width: 100%; height: 100%; object-fit: cover; }
+        .item-content { padding: 20px; }
+        .item-name { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+        .item-brand { color: var(--text-secondary); font-size: 0.85rem; font-family: 'Space Mono', monospace; margin-bottom: 12px; }
+        .item-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .badge { padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+        .badge-category { background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(139, 92, 246, 0.15)); color: var(--color-primary); }
+        .badge-location { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 146, 60, 0.15)); color: var(--color-accent); }
+        .item-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
+        .item-actions { display: flex; gap: 8px; }
+        .item-actions .btn { flex: 1; justify-content: center; }
+        
+        /* List View */
+        .items-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-md); }
+        .items-table th { background: var(--bg-sidebar); color: var(--text-inverse); padding: 16px; text-align: left; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; user-select: none; white-space: nowrap; }
+        .items-table th:hover { background: #334155; }
+        .items-table th .sort-icon { margin-left: 6px; opacity: 0.5; }
+        .items-table th.sorted .sort-icon { opacity: 1; }
+        .items-table td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .items-table tr:hover { background: var(--bg-hover); }
+        .items-table tr:last-child td { border-bottom: none; }
+        .table-item-name { font-weight: 600; color: var(--text-primary); }
+        .table-item-brand { font-size: 0.8rem; color: var(--text-secondary); }
+        .table-actions { display: flex; gap: 6px; }
+        
+        /* Location Hierarchy */
+        .location-hierarchy { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .location-part { padding: 3px 8px; background: rgba(14, 165, 233, 0.1); border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600; color: var(--color-primary); }
+        .location-separator { color: var(--text-muted); font-size: 0.7rem; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-card); border-radius: var(--radius-xl); max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal-content.modal-sm { max-width: 500px; }
+        @keyframes modalSlideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-header { padding: 24px 24px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+        .close-btn { width: 36px; height: 36px; border: none; background: var(--bg-hover); border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: var(--text-secondary); transition: var(--transition); }
+        .close-btn:hover { background: var(--color-danger); color: var(--text-inverse); }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; justify-content: flex-end; }
+        
+        /* Form */
+        .form-section { margin-bottom: 24px; }
+        .form-section:last-child { margin-bottom: 0; }
+        .section-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .section-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 0.9rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .form-grid.single { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-label { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .required { color: var(--color-danger); }
+        .form-input, .form-select, .form-textarea { padding: 12px 14px; border: 2px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.95rem; font-family: inherit; transition: var(--transition); background: var(--bg-main); }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--color-primary); background: var(--bg-card); }
+        .form-input:disabled { background: var(--bg-hover); cursor: not-allowed; }
+        .form-textarea { resize: vertical; min-height: 80px; }
+        .form-hint { font-size: 0.75rem; color: var(--text-muted); }
+        
+        /* Photo Upload */
+        .photo-upload-zone { border: 2px dashed var(--border-color); border-radius: var(--radius-lg); padding: 30px; text-align: center; cursor: pointer; transition: var(--transition); background: var(--bg-main); }
+        .photo-upload-zone:hover { border-color: var(--color-primary); background: rgba(14, 165, 233, 0.05); }
+        .upload-icon { font-size: 2.5rem; margin-bottom: 12px; color: var(--text-muted); }
+        .upload-text { color: var(--text-secondary); font-size: 0.85rem; }
+        .photo-preview { max-width: 100%; max-height: 200px; border-radius: var(--radius-md); margin-top: 12px; box-shadow: var(--shadow-md); }
+        
+        /* QR Code */
+        .qr-code-display { background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; text-align: center; }
+        .qr-canvas { margin: 0 auto; display: block; max-width: 100%; }
+        .qr-label { margin-top: 12px; font-size: 1rem; font-weight: 700; color: var(--text-primary); font-family: 'Space Mono', monospace; }
+        .qr-actions { margin-top: 16px; display: flex; gap: 10px; justify-content: center; }
+        
+        /* Empty State */
+        .empty-state { text-align: center; padding: 60px 30px; background: var(--bg-card); border-radius: var(--radius-lg); border: 2px dashed var(--border-color); }
+        .empty-icon { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
+        .empty-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 10px; color: var(--text-primary); }
+        .empty-text { color: var(--text-secondary); margin-bottom: 20px; }
+        
+        /* Login */
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; }
+        .login-box { background: var(--bg-card); border-radius: var(--radius-xl); padding: 40px; max-width: 420px; width: 100%; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+        .login-header { text-align: center; margin-bottom: 32px; }
+        .login-logo { width: 70px; height: 70px; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px; }
+        .login-title { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+        .login-subtitle { color: var(--text-secondary); }
+        .login-form { display: flex; flex-direction: column; gap: 16px; }
+        .login-error { background: rgba(239, 68, 68, 0.1); border: 2px solid var(--color-danger); border-radius: var(--radius-md); padding: 12px; color: var(--color-danger); font-weight: 600; text-align: center; display: none; }
+        .login-error.show { display: block; }
+        
+        /* Confirm Dialog */
+        .confirm-message { font-size: 1rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6; }
+        .confirm-warning { background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--color-danger); padding: 12px 16px; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-bottom: 20px; color: var(--color-danger); font-size: 0.9rem; }
+        
+        /* Category Tag */
+        .category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-hover); border-radius: var(--radius-md); margin: 4px; font-size: 0.85rem; }
+        .category-tag .delete-tag { cursor: pointer; color: var(--color-danger); font-weight: bold; }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .main-content { padding: 20px; }
+            .page-title { font-size: 1.75rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .controls-row { flex-direction: column; }
+            .search-wrapper { width: 100%; }
+            .items-grid { grid-template-columns: 1fr; }
+            .items-table { font-size: 0.85rem; }
+            .items-table th, .items-table td { padding: 10px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="login-logo">🔧</div>
+                <h1 class="login-title">Werkzeug Pro</h1>
+                <p class="login-subtitle">Bitte melde dich an</p>
+            </div>
+            <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div id="loginError" class="login-error"></div>
+                <div class="form-group">
+                    <label class="form-label">E-Mail</label>
+                    <input type="email" class="form-input" id="loginEmail" required placeholder="deine@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Passwort</label>
+                    <input type="password" class="form-input" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                    <span>🔓</span>
+                    <span>Anmelden</span>
+                </button>
+                <div style="text-align:center; margin-top:16px; color:var(--text-muted); font-size:0.85rem;">
+                    Nur für eingeladene Benutzer
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="appContainer" style="display:none;">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <h1><div class="logo-icon">🔧</div><span>Werkzeug Pro</span></h1>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a class="nav-link active" data-page="werkzeuge"><span class="nav-icon">🔧</span><span>Werkzeuge</span></a></li>
+                    <li class="nav-item"><a class="nav-link" data-page="lagerplaetze"><span class="nav-icon">📦</span><span>Lagerplätze</span></a></li>
+                    <li class="nav-item"><a class="nav-link" data-page="kategorien"><span class="nav-icon">🏷️</span><span>Kategorien</span></a></li>
+                    <li class="nav-item"><a class="nav-link" data-page="scanner"><span class="nav-icon">📱</span><span>QR-Scanner</span></a></li>
+                </ul>
+            </nav>
+            <div class="connection-status">
+                <div class="status-indicator">
+                    <div class="status-dot" id="connectionDot"></div>
+                    <span id="connectionText">Verbinde...</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="handleLogout()" style="width:100%; margin-top:16px; justify-content:center;">
+                    <span>🚪</span><span>Abmelden</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Werkzeuge Page -->
+            <div id="page-werkzeuge" class="page active">
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h1 class="page-title">Werkzeuge</h1>
+                        <p class="page-subtitle">Verwalte dein Inventar</p>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" onclick="setView('grid')" id="viewGridBtn">🔲</button>
+                        <button class="view-toggle-btn" onclick="setView('list')" id="viewListBtn">📋</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-icon blue">🔧</div><div class="stat-label">Werkzeuge</div><div class="stat-value" id="totalItems">0</div></div>
+                    <div class="stat-card"><div class="stat-icon purple">📁</div><div class="stat-label">Kategorien</div><div class="stat-value" id="totalCategories">0</div></div>
+                    <div class="stat-card"><div class="stat-icon green">📦</div><div class="stat-label">Lagerplätze</div><div class="stat-value" id="totalLocations">0</div></div>
+                    <div class="stat-card"><div class="stat-icon amber">💰</div><div class="stat-label">Gesamtwert</div><div class="stat-value" id="totalValue">CHF 0</div></div>
+                </div>
+
+                <div class="controls-bar">
+                    <div class="controls-row">
+                        <div class="search-wrapper">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="searchInput" placeholder="Suchen...">
+                        </div>
+                        <select class="filter-select" id="categoryFilter"><option value="">Alle Kategorien</option></select>
+                        <select class="filter-select" id="locationFilter"><option value="">Alle Lagerplätze</option></select>
+                        <select class="filter-select" id="sortSelect">
+                            <option value="name-asc">Name A-Z</option>
+                            <option value="name-desc">Name Z-A</option>
+                            <option value="value-asc">Wert aufsteigend</option>
+                            <option value="value-desc">Wert absteigend</option>
+                            <option value="quantity-asc">Menge aufsteigend</option>
+                            <option value="quantity-desc">Menge absteigend</option>
+                            <option value="date-desc">Neueste zuerst</option>
+                            <option value="date-asc">Älteste zuerst</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openAddModal()"><span>+</span><span>Hinzufügen</span></button>
+                    </div>
+                </div>
+
+                <div id="itemsGrid" class="items-grid"></div>
+                <div id="itemsTableContainer" style="display:none;"><table class="items-table" id="itemsTable"></table></div>
+            </div>
+
+            <!-- Lagerplätze Page -->
+            <div id="page-lagerplaetze" class="page" style="display:none;">
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h1 class="page-title">Lagerplätze</h1>
+                        <p class="page-subtitle">Verwalte deine Lagerstruktur</p>
+                    </div>
+                </div>
+                <div class="controls-bar">
+                    <div class="controls-row">
+                        <button class="btn btn-primary" onclick="openLocationModal()"><span>+</span><span>Lagerplatz erstellen</span></button>
+                    </div>
+                </div>
+                <div class="items-grid" id="locationsGrid"></div>
+            </div>
+
+            <!-- Kategorien Page -->
+            <div id="page-kategorien" class="page" style="display:none;">
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h1 class="page-title">Kategorien</h1>
+                        <p class="page-subtitle">Verwalte Haupt- und Unterkategorien</p>
+                    </div>
+                </div>
+                <div class="controls-bar">
+                    <div class="controls-row">
+                        <button class="btn btn-primary" onclick="openCategoryModal()"><span>+</span><span>Kategorie erstellen</span></button>
+                    </div>
+                </div>
+                <div class="items-grid" id="categoriesGrid"></div>
+            </div>
+
+            <!-- Scanner Page -->
+            <div id="page-scanner" class="page" style="display:none;">
+                <div class="page-header">
+                    <div class="page-header-left">
+                        <h1 class="page-title">QR-Scanner</h1>
+                        <p class="page-subtitle">Scanne QR-Codes um Werkzeuge zu finden</p>
+                    </div>
+                </div>
+                <div style="max-width:500px;">
+                    <div id="qr-reader"></div>
+                    <div id="scannerResult"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Werkzeug Modal -->
+    <div class="modal" id="itemModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Werkzeug hinzufügen</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="itemForm" onsubmit="saveItem(event)">
+                    <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">📝</span>Grunddaten</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Name <span class="required">*</span></label><input type="text" class="form-input" id="itemName" required></div>
+                            <div class="form-group"><label class="form-label">Menge <span class="required">*</span></label><input type="number" class="form-input" id="quantity" value="1" min="1" required></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Marke</label><input type="text" class="form-input" id="brand"></div>
+                            <div class="form-group"><label class="form-label">Modell</label><input type="text" class="form-input" id="model"></div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">📁</span>Kategorisierung</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Hauptkategorie <span class="required">*</span></label><select class="form-select" id="mainCategory" required onchange="updateSubCategorySelect()"><option value="">Wählen...</option></select></div>
+                            <div class="form-group"><label class="form-label">Unterkategorie</label><select class="form-select" id="subCategory"><option value="">Keine</option></select></div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">📍</span>Lagerort</h3>
+                        <div class="form-grid single">
+                            <div class="form-group"><label class="form-label">Lagerplatz auswählen</label><select class="form-select" id="locationSelect" onchange="updateLocationFields()"><option value="">Manuell eingeben</option></select></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Zone <span class="required">*</span></label><input type="text" class="form-input" id="zone" placeholder="z.B. Keller" required></div>
+                            <div class="form-group"><label class="form-label">Regal</label><input type="text" class="form-input" id="regal" placeholder="z.B. Regal A"></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Platz</label><input type="text" class="form-input" id="platz" placeholder="z.B. Ebene 2"></div>
+                            <div class="form-group"><label class="form-label">Fach</label><input type="text" class="form-input" id="fach" placeholder="z.B. Schublade 1"></div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">💰</span>Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Wert (CHF)</label><input type="number" class="form-input" id="value" value="0" min="0" step="0.01"></div>
+                        </div>
+                        <div class="form-grid single">
+                            <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" id="notes" placeholder="Zusätzliche Informationen..."></textarea></div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">📷</span>Foto</h3>
+                        <div class="photo-upload-zone" onclick="document.getElementById('photoInput').click()"><div class="upload-icon">📷</div><div class="upload-text">Foto hochladen</div></div>
+                        <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+                        <img id="photoPreview" class="photo-preview" style="display:none">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><span>💾</span><span>Speichern</span></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lagerplatz Modal -->
+    <div class="modal" id="locationModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title">Lagerplatz erstellen</h2>
+                <button class="close-btn" onclick="closeLocationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="locationForm" onsubmit="saveLocation(event)">
+                    <div class="form-section">
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Zone <span class="required">*</span></label><input type="text" class="form-input" id="locZone" required placeholder="z.B. Keller"></div>
+                            <div class="form-group"><label class="form-label">Regal</label><input type="text" class="form-input" id="locRegal" placeholder="z.B. Regal A"></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Platz</label><input type="text" class="form-input" id="locPlatz" placeholder="z.B. Ebene 2"></div>
+                            <div class="form-group"><label class="form-label">Fach</label><input type="text" class="form-input" id="locFach" placeholder="z.B. Schublade 1"></div>
+                        </div>
+                        <div class="form-grid single">
+                            <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="locationDescription" placeholder="Optionale Beschreibung"></textarea></div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><span>📦</span><span>Erstellen</span></button>
+                </form>
+                <div id="qrCodeDisplay" style="display:none; margin-top:24px;">
+                    <div class="qr-code-display">
+                        <canvas id="qrCanvas" class="qr-canvas"></canvas>
+                        <div class="qr-label" id="qrModalLabel"></div>
+                        <div class="qr-actions"><button class="btn btn-primary btn-sm" onclick="downloadQR()"><span>📥</span><span>Download</span></button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kategorie Modal -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title">Kategorie erstellen</h2>
+                <button class="close-btn" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm" onsubmit="saveCategory(event)">
+                    <div class="form-section">
+                        <div class="form-grid single">
+                            <div class="form-group"><label class="form-label">Hauptkategorie <span class="required">*</span></label><input type="text" class="form-input" id="catName" required placeholder="z.B. Elektrowerkzeug"></div>
+                        </div>
+                        <div class="form-grid single">
+                            <div class="form-group"><label class="form-label">Icon (Emoji)</label><input type="text" class="form-input" id="catIcon" placeholder="z.B. ⚡" maxlength="2"></div>
+                        </div>
+                        <div class="form-grid single">
+                            <div class="form-group">
+                                <label class="form-label">Unterkategorien</label>
+                                <div id="subCatTags" style="margin-bottom:8px;"></div>
+                                <div style="display:flex; gap:8px;">
+                                    <input type="text" class="form-input" id="newSubCat" placeholder="Unterkategorie hinzufügen">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="addSubCatTag()">+</button>
+                                </div>
+                                <p class="form-hint">Enter drücken oder + klicken zum Hinzufügen</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><span>🏷️</span><span>Speichern</span></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title" id="confirmTitle">Bestätigung</h2>
+                <button class="close-btn" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-message" id="confirmMessage"></p>
+                <div class="confirm-warning" id="confirmWarning" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Abbrechen</button>
+                <button class="btn btn-danger" id="confirmBtn" onclick="confirmAction()">Löschen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Umbuchen Modal -->
+    <div class="modal" id="relocateModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title">Lagerplatz umbuchen</h2>
+                <button class="close-btn" onclick="closeRelocateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:16px; color:var(--text-secondary);">Wähle den neuen Lagerplatz für: <strong id="relocateItemName"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">Neuer Lagerplatz</label>
+                    <select class="form-select" id="relocateLocationSelect" onchange="updateRelocateFields()"><option value="">Manuell eingeben</option></select>
+                </div>
+                <div class="form-grid" style="margin-top:16px;">
+                    <div class="form-group"><label class="form-label">Zone <span class="required">*</span></label><input type="text" class="form-input" id="relocateZone" required></div>
+                    <div class="form-group"><label class="form-label">Regal</label><input type="text" class="form-input" id="relocateRegal"></div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group"><label class="form-label">Platz</label><input type="text" class="form-input" id="relocatePlatz"></div>
+                    <div class="form-group"><label class="form-label">Fach</label><input type="text" class="form-input" id="relocateFach"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRelocateModal()">Abbrechen</button>
+                <button class="btn btn-primary" onclick="confirmRelocate()">Umbuchen</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcGvs8ktnV8nResR5euLhty6BLW_gdz7Q",
+            authDomain: "werkzeuglager-home.firebaseapp.com",
+            databaseURL: "https://werkzeuglager-home-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "werkzeuglager-home",
+            storageBucket: "werkzeuglager-home.firebasestorage.app",
+            messagingSenderId: "360393799164",
+            appId: "1:360393799164:web:d95f8242900e577690ae79"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // State
+        let items = [];
+        let locations = [];
+        let categories = [];
+        let currentEditId = null;
+        let currentLocationId = null;
+        let currentView = 'grid';
+        let confirmCallback = null;
+        let relocateItemId = null;
+        let tempSubCategories = [];
+        let html5QrCode = null;
+
+        // Auth
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                initApp();
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('appContainer').style.display = 'none';
+            }
+        });
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.classList.remove('show');
+            auth.signInWithEmailAndPassword(email, password).catch((error) => {
+                errorDiv.textContent = 'Anmeldung fehlgeschlagen: ' + error.message;
+                errorDiv.classList.add('show');
+            });
+        }
+
+        function handleLogout() { auth.signOut(); }
+
+        // Init App
+        function initApp() {
+            // Connection Status
+            database.ref('.info/connected').on('value', (snap) => {
+                const dot = document.getElementById('connectionDot');
+                const text = document.getElementById('connectionText');
+                if (snap.val() === true) { dot.classList.add('connected'); text.textContent = 'Verbunden'; }
+                else { dot.classList.remove('connected'); text.textContent = 'Nicht verbunden'; }
+            });
+
+            // Load Data
+            database.ref('werkzeuge').on('value', (snapshot) => {
+                items = [];
+                snapshot.forEach((child) => { items.push({ id: child.key, ...child.val() }); });
+                renderItems();
+                updateStats();
+                updateFilters();
+            });
+
+            database.ref('lagerplaetze').on('value', (snapshot) => {
+                locations = [];
+                snapshot.forEach((child) => { locations.push({ id: child.key, ...child.val() }); });
+                renderLocations();
+                updateLocationSelects();
+                updateStats();
+            });
+
+            database.ref('kategorien').on('value', (snapshot) => {
+                categories = [];
+                snapshot.forEach((child) => { categories.push({ id: child.key, ...child.val() }); });
+                renderCategories();
+                updateCategorySelects();
+                updateStats();
+            });
+
+            // Navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    const page = link.dataset.page;
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+                    document.getElementById(`page-${page}`).style.display = 'block';
+                    if (page === 'scanner') startScanner();
+                });
+            });
+
+            // Event Listeners
+            document.getElementById('searchInput').addEventListener('input', renderItems);
+            document.getElementById('categoryFilter').addEventListener('change', renderItems);
+            document.getElementById('locationFilter').addEventListener('change', renderItems);
+            document.getElementById('sortSelect').addEventListener('change', renderItems);
+            document.getElementById('newSubCat').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSubCatTag(); } });
+        }
+
+        // View Toggle
+        function setView(view) {
+            currentView = view;
+            document.getElementById('viewGridBtn').classList.toggle('active', view === 'grid');
+            document.getElementById('viewListBtn').classList.toggle('active', view === 'list');
+            document.getElementById('itemsGrid').style.display = view === 'grid' ? 'grid' : 'none';
+            document.getElementById('itemsTableContainer').style.display = view === 'list' ? 'block' : 'none';
+            renderItems();
+        }
+
+        // Render Items
+        function renderItems() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const locationFilter = document.getElementById('locationFilter').value;
+            const sortValue = document.getElementById('sortSelect').value;
+
+            let filtered = items.filter(item => {
+                const fullCategory = item.mainCategory + (item.subCategory ? ' › ' + item.subCategory : '');
+                const fullLocation = [item.zone, item.regal, item.platz, item.fach].filter(Boolean).join(' › ');
+                const matchesSearch = !searchTerm || item.name.toLowerCase().includes(searchTerm) || fullCategory.toLowerCase().includes(searchTerm) || fullLocation.toLowerCase().includes(searchTerm) || (item.brand && item.brand.toLowerCase().includes(searchTerm));
+                const matchesCategory = !categoryFilter || item.mainCategory === categoryFilter;
+                const matchesLocation = !locationFilter || fullLocation === locationFilter;
+                return matchesSearch && matchesCategory && matchesLocation;
+            });
+
+            // Sort
+            const [sortField, sortDir] = sortValue.split('-');
+            filtered.sort((a, b) => {
+                let valA, valB;
+                if (sortField === 'name') { valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); }
+                else if (sortField === 'value') { valA = a.value || 0; valB = b.value || 0; }
+                else if (sortField === 'quantity') { valA = a.quantity || 0; valB = b.quantity || 0; }
+                else if (sortField === 'date') { valA = a.updatedAt || ''; valB = b.updatedAt || ''; }
+                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            if (currentView === 'grid') renderGridView(filtered);
+            else renderListView(filtered);
+        }
+
+        function renderGridView(filtered) {
+            const grid = document.getElementById('itemsGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Keine Werkzeuge gefunden</div><div class="empty-text">Füge dein erstes Werkzeug hinzu</div><button class="btn btn-primary" onclick="openAddModal()"><span>+</span><span>Hinzufügen</span></button></div>`;
+                return;
+            }
+            grid.innerHTML = filtered.map(item => {
+                const locationParts = [item.zone, item.regal, item.platz, item.fach].filter(Boolean);
+                const locationHTML = locationParts.length > 0 ? locationParts.map(p => `<span class="location-part">${p}</span>`).join('<span class="location-separator">›</span>') : '';
+                const cat = categories.find(c => c.name === item.mainCategory);
+                const catIcon = cat ? cat.icon || '📁' : '📁';
+                return `
+                    <div class="item-card">
+                        <div class="item-image">${item.photo ? `<img src="${item.photo}" alt="${item.name}">` : '🔧'}</div>
+                        <div class="item-content">
+                            <div class="item-name">${item.name}</div>
+                            ${item.brand ? `<div class="item-brand">${item.brand}${item.model ? ' ' + item.model : ''}</div>` : ''}
+                            <div class="item-badges"><span class="badge badge-category">${catIcon} ${item.mainCategory}${item.subCategory ? ' › ' + item.subCategory : ''}</span></div>
+                            ${locationHTML ? `<div class="location-hierarchy">${locationHTML}</div>` : ''}
+                            <div class="item-meta"><span>${item.quantity}x</span><span>CHF ${(item.value || 0).toFixed(2)}</span></div>
+                            <div class="item-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="editItem('${item.id}')">✏️</button>
+                                <button class="btn btn-secondary btn-sm" onclick="openRelocateModal('${item.id}')">📍</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteItem('${item.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderListView(filtered) {
+            const table = document.getElementById('itemsTable');
+            if (filtered.length === 0) {
+                table.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px;">Keine Werkzeuge gefunden</td></tr>';
+                return;
+            }
+            table.innerHTML = `
+                <thead><tr>
+                    <th>Name</th><th>Kategorie</th><th>Lagerort</th><th>Menge</th><th>Wert</th><th>Aktionen</th>
+                </tr></thead>
+                <tbody>${filtered.map(item => {
+                    const locationParts = [item.zone, item.regal, item.platz, item.fach].filter(Boolean);
+                    return `<tr>
+                        <td><div class="table-item-name">${item.name}</div>${item.brand ? `<div class="table-item-brand">${item.brand}</div>` : ''}</td>
+                        <td>${item.mainCategory}${item.subCategory ? ' › ' + item.subCategory : ''}</td>
+                        <td>${locationParts.join(' › ') || '-'}</td>
+                        <td>${item.quantity}x</td>
+                        <td>CHF ${(item.value || 0).toFixed(2)}</td>
+                        <td><div class="table-actions">
+                            <button class="btn btn-secondary btn-sm btn-icon" onclick="editItem('${item.id}')" title="Bearbeiten">✏️</button>
+                            <button class="btn btn-secondary btn-sm btn-icon" onclick="openRelocateModal('${item.id}')" title="Umbuchen">📍</button>
+                            <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}')" title="Löschen">🗑️</button>
+                        </div></td>
+                    </tr>`;
+                }).join('')}</tbody>`;
+        }
+
+        // Render Locations
+        function renderLocations() {
+            const grid = document.getElementById('locationsGrid');
+            if (locations.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Keine Lagerplätze</div><div class="empty-text">Erstelle deinen ersten Lagerplatz</div><button class="btn btn-primary" onclick="openLocationModal()"><span>+</span><span>Erstellen</span></button></div>`;
+                return;
+            }
+            grid.innerHTML = locations.map(loc => {
+                const itemCount = items.filter(i => i.zone === loc.zone && (!loc.regal || i.regal === loc.regal) && (!loc.platz || i.platz === loc.platz) && (!loc.fach || i.fach === loc.fach)).length;
+                const parts = [loc.zone, loc.regal, loc.platz, loc.fach].filter(Boolean);
+                return `
+                    <div class="item-card">
+                        <div class="item-content">
+                            <div class="item-name">📦 ${loc.name}</div>
+                            ${loc.description ? `<div class="item-brand">${loc.description}</div>` : ''}
+                            <div class="location-hierarchy" style="margin:12px 0;">${parts.map(p => `<span class="location-part">${p}</span>`).join('<span class="location-separator">›</span>')}</div>
+                            <div class="item-badges"><span class="badge badge-location">${itemCount} Werkzeuge</span></div>
+                            <div style="text-align:center; margin:16px 0;"><canvas id="qr-${loc.id}" style="max-width:150px;"></canvas><div class="qr-label" style="font-size:0.85rem;">${loc.name}</div></div>
+                            <div class="item-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="downloadLocationQR('${loc.id}')">📥 QR</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteLocation('${loc.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+            locations.forEach(loc => {
+                const canvas = document.getElementById(`qr-${loc.id}`);
+                if (canvas) QRCode.toCanvas(canvas, loc.id, { width: 150, margin: 1 });
+            });
+        }
+
+        // Render Categories
+        function renderCategories() {
+            const grid = document.getElementById('categoriesGrid');
+            if (categories.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-title">Keine Kategorien</div><div class="empty-text">Erstelle deine erste Kategorie</div><button class="btn btn-primary" onclick="openCategoryModal()"><span>+</span><span>Erstellen</span></button></div>`;
+                return;
+            }
+            grid.innerHTML = categories.map(cat => {
+                const itemCount = items.filter(i => i.mainCategory === cat.name).length;
+                return `
+                    <div class="item-card">
+                        <div class="item-content">
+                            <div class="item-name">${cat.icon || '📁'} ${cat.name}</div>
+                            <div class="item-badges"><span class="badge badge-category">${itemCount} Werkzeuge</span></div>
+                            ${cat.subCategories && cat.subCategories.length > 0 ? `<div style="margin-top:12px;"><strong style="font-size:0.8rem; color:var(--text-muted);">UNTERKATEGORIEN:</strong><div style="margin-top:8px;">${cat.subCategories.map(s => `<span class="category-tag">${s}</span>`).join('')}</div></div>` : ''}
+                            <div class="item-actions" style="margin-top:16px;">
+                                <button class="btn btn-secondary btn-sm" onclick="editCategory('${cat.id}')">✏️ Bearbeiten</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteCategory('${cat.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // Update Stats
+        function updateStats() {
+            const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
+            const totalCats = categories.length;
+            const totalLocs = locations.length;
+            const totalValue = items.reduce((sum, i) => sum + ((i.value || 0) * (i.quantity || 1)), 0);
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('totalCategories').textContent = totalCats;
+            document.getElementById('totalLocations').textContent = totalLocs;
+            document.getElementById('totalValue').textContent = `CHF ${totalValue.toFixed(2)}`;
+        }
+
+        // Update Filters
+        function updateFilters() {
+            const catFilter = document.getElementById('categoryFilter');
+            const locFilter = document.getElementById('locationFilter');
+            const currentCat = catFilter.value;
+            const currentLoc = locFilter.value;
+            catFilter.innerHTML = '<option value="">Alle Kategorien</option>' + categories.map(c => `<option value="${c.name}">${c.icon || '📁'} ${c.name}</option>`).join('');
+            const locs = [...new Set(items.map(i => [i.zone, i.regal, i.platz, i.fach].filter(Boolean).join(' › ')))].filter(Boolean).sort();
+            locFilter.innerHTML = '<option value="">Alle Lagerplätze</option>' + locs.map(l => `<option value="${l}">${l}</option>`).join('');
+            catFilter.value = currentCat;
+            locFilter.value = currentLoc;
+        }
+
+        // Update Selects
+        function updateLocationSelects() {
+            const selects = ['locationSelect', 'relocateLocationSelect'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    const current = select.value;
+                    select.innerHTML = '<option value="">Manuell eingeben</option>' + locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                    select.value = current;
+                }
+            });
+        }
+
+        function updateCategorySelects() {
+            const select = document.getElementById('mainCategory');
+            const current = select.value;
+            select.innerHTML = '<option value="">Wählen...</option>' + categories.map(c => `<option value="${c.name}">${c.icon || '📁'} ${c.name}</option>`).join('');
+            select.value = current;
+        }
+
+        function updateSubCategorySelect() {
+            const mainCat = document.getElementById('mainCategory').value;
+            const subCat = document.getElementById('subCategory');
+            subCat.innerHTML = '<option value="">Keine</option>';
+            const cat = categories.find(c => c.name === mainCat);
+            if (cat && cat.subCategories) {
+                cat.subCategories.forEach(s => { subCat.innerHTML += `<option value="${s}">${s}</option>`; });
+            }
+        }
+
+        function updateLocationFields() {
+            const select = document.getElementById('locationSelect');
+            const loc = locations.find(l => l.id === select.value);
+            const fields = ['zone', 'regal', 'platz', 'fach'];
+            if (loc) {
+                fields.forEach(f => { document.getElementById(f).value = loc[f] || ''; document.getElementById(f).disabled = true; });
+            } else {
+                fields.forEach(f => { document.getElementById(f).value = ''; document.getElementById(f).disabled = false; });
+            }
+        }
+
+        function updateRelocateFields() {
+            const select = document.getElementById('relocateLocationSelect');
+            const loc = locations.find(l => l.id === select.value);
+            const fields = ['relocateZone', 'relocateRegal', 'relocatePlatz', 'relocateFach'];
+            const srcFields = ['zone', 'regal', 'platz', 'fach'];
+            if (loc) {
+                srcFields.forEach((f, i) => { document.getElementById(fields[i]).value = loc[f] || ''; document.getElementById(fields[i]).disabled = true; });
+            } else {
+                fields.forEach(f => { document.getElementById(f).value = ''; document.getElementById(f).disabled = false; });
+            }
+        }
+
+        // Modals
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'Werkzeug hinzufügen';
+            document.getElementById('itemForm').reset();
+            document.getElementById('photoPreview').style.display = 'none';
+            updateCategorySelects();
+            updateLocationSelects();
+            ['zone', 'regal', 'platz', 'fach'].forEach(f => document.getElementById(f).disabled = false);
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('itemModal').classList.remove('active'); }
+
+        function openLocationModal() {
+            currentLocationId = null;
+            document.getElementById('locationForm').reset();
+            document.getElementById('qrCodeDisplay').style.display = 'none';
+            document.getElementById('locationModal').classList.add('active');
+        }
+
+        function closeLocationModal() { document.getElementById('locationModal').classList.remove('active'); }
+
+        function openCategoryModal() {
+            tempSubCategories = [];
+            document.getElementById('categoryForm').reset();
+            renderSubCatTags();
+            document.getElementById('categoryModal').classList.add('active');
+        }
+
+        function closeCategoryModal() { document.getElementById('categoryModal').classList.remove('active'); }
+
+        function openRelocateModal(itemId) {
+            relocateItemId = itemId;
+            const item = items.find(i => i.id === itemId);
+            document.getElementById('relocateItemName').textContent = item.name;
+            document.getElementById('relocateLocationSelect').value = '';
+            document.getElementById('relocateZone').value = item.zone || '';
+            document.getElementById('relocateRegal').value = item.regal || '';
+            document.getElementById('relocatePlatz').value = item.platz || '';
+            document.getElementById('relocateFach').value = item.fach || '';
+            ['relocateZone', 'relocateRegal', 'relocatePlatz', 'relocateFach'].forEach(f => document.getElementById(f).disabled = false);
+            updateLocationSelects();
+            document.getElementById('relocateModal').classList.add('active');
+        }
+
+        function closeRelocateModal() { document.getElementById('relocateModal').classList.remove('active'); relocateItemId = null; }
+
+        function closeConfirmModal() { document.getElementById('confirmModal').classList.remove('active'); confirmCallback = null; }
+
+        function showConfirm(title, message, warning, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            const warningDiv = document.getElementById('confirmWarning');
+            if (warning) { warningDiv.textContent = warning; warningDiv.style.display = 'block'; }
+            else { warningDiv.style.display = 'none'; }
+            confirmCallback = callback;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function confirmAction() { if (confirmCallback) confirmCallback(); closeConfirmModal(); }
+
+        // Sub Category Tags
+        function addSubCatTag() {
+            const input = document.getElementById('newSubCat');
+            const value = input.value.trim();
+            if (value && !tempSubCategories.includes(value)) {
+                tempSubCategories.push(value);
+                renderSubCatTags();
+            }
+            input.value = '';
+        }
+
+        function removeSubCatTag(index) { tempSubCategories.splice(index, 1); renderSubCatTags(); }
+
+        function renderSubCatTags() {
+            document.getElementById('subCatTags').innerHTML = tempSubCategories.map((s, i) => `<span class="category-tag">${s} <span class="delete-tag" onclick="removeSubCatTag(${i})">×</span></span>`).join('');
+        }
+
+        // Photo Preview
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('photoPreview').src = e.target.result;
+                    document.getElementById('photoPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Save Item
+        function saveItem(event) {
+            event.preventDefault();
+            ['zone', 'regal', 'platz', 'fach'].forEach(f => document.getElementById(f).disabled = false);
+            const item = {
+                name: document.getElementById('itemName').value,
+                mainCategory: document.getElementById('mainCategory').value,
+                subCategory: document.getElementById('subCategory').value,
+                brand: document.getElementById('brand').value,
+                model: document.getElementById('model').value,
+                quantity: parseInt(document.getElementById('quantity').value) || 1,
+                value: parseFloat(document.getElementById('value').value) || 0,
+                zone: document.getElementById('zone').value,
+                regal: document.getElementById('regal').value,
+                platz: document.getElementById('platz').value,
+                fach: document.getElementById('fach').value,
+                notes: document.getElementById('notes').value,
+                photo: document.getElementById('photoPreview').src || null,
+                updatedAt: new Date().toISOString()
+            };
+            if (currentEditId) database.ref('werkzeuge/' + currentEditId).update(item);
+            else database.ref('werkzeuge').push(item);
+            closeModal();
+        }
+
+        // Edit Item
+        function editItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+            currentEditId = id;
+            document.getElementById('modalTitle').textContent = 'Werkzeug bearbeiten';
+            document.getElementById('itemName').value = item.name;
+            updateCategorySelects();
+            document.getElementById('mainCategory').value = item.mainCategory;
+            updateSubCategorySelect();
+            document.getElementById('subCategory').value = item.subCategory || '';
+            document.getElementById('brand').value = item.brand || '';
+            document.getElementById('model').value = item.model || '';
+            document.getElementById('quantity').value = item.quantity || 1;
+            document.getElementById('value').value = item.value || 0;
+            updateLocationSelects();
+            document.getElementById('locationSelect').value = '';
+            document.getElementById('zone').value = item.zone || '';
+            document.getElementById('regal').value = item.regal || '';
+            document.getElementById('platz').value = item.platz || '';
+            document.getElementById('fach').value = item.fach || '';
+            ['zone', 'regal', 'platz', 'fach'].forEach(f => document.getElementById(f).disabled = false);
+            document.getElementById('notes').value = item.notes || '';
+            if (item.photo) { document.getElementById('photoPreview').src = item.photo; document.getElementById('photoPreview').style.display = 'block'; }
+            else { document.getElementById('photoPreview').style.display = 'none'; }
+            document.getElementById('itemModal').classList.add('active');
+        }
+
+        // Delete Item
+        function deleteItem(id) {
+            const item = items.find(i => i.id === id);
+            showConfirm('Werkzeug löschen', `Möchtest du "${item.name}" wirklich löschen?`, 'Diese Aktion kann nicht rückgängig gemacht werden.', () => {
+                database.ref('werkzeuge/' + id).remove();
+            });
+        }
+
+        // Relocate Item
+        function confirmRelocate() {
+            if (!relocateItemId) return;
+            ['relocateZone', 'relocateRegal', 'relocatePlatz', 'relocateFach'].forEach(f => document.getElementById(f).disabled = false);
+            const update = {
+                zone: document.getElementById('relocateZone').value,
+                regal: document.getElementById('relocateRegal').value,
+                platz: document.getElementById('relocatePlatz').value,
+                fach: document.getElementById('relocateFach').value,
+                updatedAt: new Date().toISOString()
+            };
+            database.ref('werkzeuge/' + relocateItemId).update(update);
+            closeRelocateModal();
+        }
+
+        // Save Location
+        function saveLocation(event) {
+            event.preventDefault();
+            const zone = document.getElementById('locZone').value;
+            const regal = document.getElementById('locRegal').value;
+            const platz = document.getElementById('locPlatz').value;
+            const fach = document.getElementById('locFach').value;
+            const nameParts = [zone, regal, platz, fach].filter(Boolean);
+            const loc = {
+                name: nameParts.join(' › '),
+                zone, regal, platz, fach,
+                description: document.getElementById('locationDescription').value,
+                createdAt: new Date().toISOString()
+            };
+            const ref = database.ref('lagerplaetze').push(loc);
+            currentLocationId = ref.key;
+            document.getElementById('qrCodeDisplay').style.display = 'block';
+            document.getElementById('qrModalLabel').textContent = loc.name;
+            QRCode.toCanvas(document.getElementById('qrCanvas'), currentLocationId, { width: 250, margin: 2 });
+        }
+
+        // Delete Location
+        function deleteLocation(id) {
+            const loc = locations.find(l => l.id === id);
+            const itemCount = items.filter(i => i.zone === loc.zone && (!loc.regal || i.regal === loc.regal)).length;
+            showConfirm('Lagerplatz löschen', `Möchtest du "${loc.name}" wirklich löschen?`, itemCount > 0 ? `Achtung: ${itemCount} Werkzeuge sind diesem Lagerplatz zugeordnet!` : null, () => {
+                database.ref('lagerplaetze/' + id).remove();
+            });
+        }
+
+        // Save Category
+        function saveCategory(event) {
+            event.preventDefault();
+            const cat = {
+                name: document.getElementById('catName').value,
+                icon: document.getElementById('catIcon').value || '📁',
+                subCategories: tempSubCategories,
+                createdAt: new Date().toISOString()
+            };
+            if (currentEditId) database.ref('kategorien/' + currentEditId).update(cat);
+            else database.ref('kategorien').push(cat);
+            currentEditId = null;
+            closeCategoryModal();
+        }
+
+        // Edit Category
+        function editCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            currentEditId = id;
+            document.getElementById('catName').value = cat.name;
+            document.getElementById('catIcon').value = cat.icon || '';
+            tempSubCategories = cat.subCategories ? [...cat.subCategories] : [];
+            renderSubCatTags();
+            document.getElementById('categoryModal').classList.add('active');
+        }
+
+        // Delete Category
+        function deleteCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            const itemCount = items.filter(i => i.mainCategory === cat.name).length;
+            showConfirm('Kategorie löschen', `Möchtest du "${cat.name}" wirklich löschen?`, itemCount > 0 ? `Achtung: ${itemCount} Werkzeuge nutzen diese Kategorie!` : null, () => {
+                database.ref('kategorien/' + id).remove();
+            });
+        }
+
+        // QR Code Download
+        function downloadQR() {
+            const loc = locations.find(l => l.id === currentLocationId);
+            const canvas = document.getElementById('qrCanvas');
+            const tempCanvas = document.createElement('canvas');
+            const ctx = tempCanvas.getContext('2d');
+            tempCanvas.width = 350; tempCanvas.height = 400;
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 350, 400);
+            ctx.drawImage(canvas, 50, 30, 250, 250);
+            ctx.fillStyle = '#0f172a'; ctx.font = 'bold 20px "Space Mono", monospace'; ctx.textAlign = 'center';
+            ctx.fillText(loc.name, 175, 320);
+            const link = document.createElement('a');
+            link.download = `${loc.name.replace(/\s/g, '_')}.png`;
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function downloadLocationQR(id) {
+            const loc = locations.find(l => l.id === id);
+            const srcCanvas = document.getElementById(`qr-${id}`);
+            const tempCanvas = document.createElement('canvas');
+            const ctx = tempCanvas.getContext('2d');
+            tempCanvas.width = 250; tempCanvas.height = 300;
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 250, 300);
+            ctx.drawImage(srcCanvas, 50, 20, 150, 150);
+            ctx.fillStyle = '#0f172a'; ctx.font = 'bold 14px "Space Mono", monospace'; ctx.textAlign = 'center';
+            ctx.fillText(loc.name, 125, 200);
+            const link = document.createElement('a');
+            link.download = `${loc.name.replace(/\s/g, '_')}.png`;
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // QR Scanner
+        function startScanner() {
+            if (html5QrCode) return;
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                showScanResult(text);
+                html5QrCode.stop().then(() => { html5QrCode = null; });
+            }).catch(err => console.error('Scanner Error:', err));
+        }
+
+        function showScanResult(locId) {
+            const loc = locations.find(l => l.id === locId);
+            const locItems = items.filter(i => {
+                if (!loc) return false;
+                return i.zone === loc.zone && (!loc.regal || i.regal === loc.regal) && (!loc.platz || i.platz === loc.platz) && (!loc.fach || i.fach === loc.fach);
+            });
+            document.getElementById('scannerResult').innerHTML = `
+                <div style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; margin-top:20px; border:2px solid var(--color-success);">
+                    <h3 style="color:var(--color-success); margin-bottom:16px;">📍 ${loc ? loc.name : 'Unbekannter Lagerplatz'}</h3>
+                    ${locItems.length > 0 ? locItems.map(i => `<div style="padding:12px; background:var(--bg-hover); border-radius:var(--radius-md); margin-bottom:8px; display:flex; justify-content:space-between;"><span><strong>${i.name}</strong></span><span>${i.quantity}x</span></div>`).join('') : '<p style="color:var(--text-muted);">Keine Werkzeuge an diesem Lagerplatz</p>'}
+                    <button class="btn btn-primary" onclick="html5QrCode = null; startScanner();" style="margin-top:16px; width:100%; justify-content:center;">Erneut scannen</button>
+                </div>`;
+        }
+    </script>
+</body>
+</html>
