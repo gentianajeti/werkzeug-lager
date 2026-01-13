@@ -10,6 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
             --color-primary: #0ea5e9;
@@ -331,6 +334,10 @@
                         </select>
                         <button class="btn btn-primary" onclick="openAddModal()"><span>+</span><span>Hinzufügen</span></button>
                     </div>
+                    <div class="controls-row" style="margin-top:12px; justify-content:flex-end;">
+                        <button class="btn btn-secondary btn-sm" onclick="exportToExcel()"><span>📊</span><span>Excel Export</span></button>
+                        <button class="btn btn-secondary btn-sm" onclick="exportToPDF()"><span>📄</span><span>PDF Export</span></button>
+                    </div>
                 </div>
 
                 <div id="itemsGrid" class="items-grid"></div>
@@ -455,7 +462,10 @@
                         <h3 class="section-title"><span class="section-icon">📷</span>Foto</h3>
                         <div class="photo-upload-zone" onclick="document.getElementById('photoInput').click()"><div class="upload-icon">📷</div><div class="upload-text">Foto hochladen</div></div>
                         <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(event)">
-                        <img id="photoPreview" class="photo-preview" style="display:none">
+                        <div id="photoPreviewContainer" style="display:none; position:relative; margin-top:12px;">
+                            <img id="photoPreview" class="photo-preview" style="display:block; margin:0;">
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removePhoto()" style="position:absolute; top:8px; right:8px;">🗑️ Entfernen</button>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><span>💾</span><span>Speichern</span></button>
                 </form>
@@ -950,7 +960,8 @@
             currentEditId = null;
             document.getElementById('modalTitle').textContent = 'Werkzeug hinzufügen';
             document.getElementById('itemForm').reset();
-            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('photoPreview').src = '';
+            document.getElementById('photoPreviewContainer').style.display = 'none';
             updateCategorySelects();
             updateLocationSelects();
             ['zone', 'regal', 'platz', 'fach'].forEach(f => document.getElementById(f).disabled = false);
@@ -1031,16 +1042,25 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     document.getElementById('photoPreview').src = e.target.result;
-                    document.getElementById('photoPreview').style.display = 'block';
+                    document.getElementById('photoPreviewContainer').style.display = 'block';
                 };
                 reader.readAsDataURL(file);
             }
+        }
+
+        // Remove Photo
+        function removePhoto() {
+            document.getElementById('photoPreview').src = '';
+            document.getElementById('photoPreviewContainer').style.display = 'none';
+            document.getElementById('photoInput').value = '';
         }
 
         // Save Item
         function saveItem(event) {
             event.preventDefault();
             ['zone', 'regal', 'platz', 'fach'].forEach(f => document.getElementById(f).disabled = false);
+            const photoSrc = document.getElementById('photoPreview').src;
+            const hasPhoto = photoSrc && !photoSrc.endsWith('/') && photoSrc !== window.location.href;
             const item = {
                 name: document.getElementById('itemName').value,
                 mainCategory: document.getElementById('mainCategory').value,
@@ -1054,7 +1074,7 @@
                 platz: document.getElementById('platz').value,
                 fach: document.getElementById('fach').value,
                 notes: document.getElementById('notes').value,
-                photo: document.getElementById('photoPreview').src || null,
+                photo: hasPhoto ? photoSrc : null,
                 updatedAt: new Date().toISOString()
             };
             if (currentEditId) database.ref('werkzeuge/' + currentEditId).update(item);
@@ -1085,8 +1105,13 @@
             document.getElementById('fach').value = item.fach || '';
             ['zone', 'regal', 'platz', 'fach'].forEach(f => document.getElementById(f).disabled = false);
             document.getElementById('notes').value = item.notes || '';
-            if (item.photo) { document.getElementById('photoPreview').src = item.photo; document.getElementById('photoPreview').style.display = 'block'; }
-            else { document.getElementById('photoPreview').style.display = 'none'; }
+            if (item.photo) { 
+                document.getElementById('photoPreview').src = item.photo; 
+                document.getElementById('photoPreviewContainer').style.display = 'block'; 
+            } else { 
+                document.getElementById('photoPreview').src = '';
+                document.getElementById('photoPreviewContainer').style.display = 'none'; 
+            }
             document.getElementById('itemModal').classList.add('active');
         }
 
@@ -1313,6 +1338,156 @@
             showConfirm('Papierkorb leeren', `Möchtest du alle ${trash.length} Elemente endgültig löschen?`, 'Diese Aktion kann nicht rückgängig gemacht werden!', () => {
                 database.ref('papierkorb').remove();
             });
+        }
+
+        // Get filtered items for export
+        function getFilteredItems() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const locationFilter = document.getElementById('locationFilter').value;
+            const sortValue = document.getElementById('sortSelect').value;
+
+            let filtered = items.filter(item => {
+                const fullCategory = item.mainCategory + (item.subCategory ? ' › ' + item.subCategory : '');
+                const fullLocation = [item.zone, item.regal, item.platz, item.fach].filter(Boolean).join(' › ');
+                const matchesSearch = !searchTerm || item.name.toLowerCase().includes(searchTerm) || fullCategory.toLowerCase().includes(searchTerm) || fullLocation.toLowerCase().includes(searchTerm) || (item.brand && item.brand.toLowerCase().includes(searchTerm));
+                const matchesCategory = !categoryFilter || item.mainCategory === categoryFilter;
+                const matchesLocation = !locationFilter || fullLocation === locationFilter;
+                return matchesSearch && matchesCategory && matchesLocation;
+            });
+
+            // Sort
+            const [sortField, sortDir] = sortValue.split('-');
+            filtered.sort((a, b) => {
+                let valA, valB;
+                if (sortField === 'name') { valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); }
+                else if (sortField === 'value') { valA = a.value || 0; valB = b.value || 0; }
+                else if (sortField === 'quantity') { valA = a.quantity || 0; valB = b.quantity || 0; }
+                else if (sortField === 'date') { valA = a.updatedAt || ''; valB = b.updatedAt || ''; }
+                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            return filtered;
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            const filtered = getFilteredItems();
+            if (filtered.length === 0) {
+                alert('Keine Daten zum Exportieren vorhanden.');
+                return;
+            }
+
+            const exportData = filtered.map(item => ({
+                'Name': item.name,
+                'Marke': item.brand || '',
+                'Modell': item.model || '',
+                'Kategorie': item.mainCategory + (item.subCategory ? ' › ' + item.subCategory : ''),
+                'Zone': item.zone || '',
+                'Regal': item.regal || '',
+                'Platz': item.platz || '',
+                'Fach': item.fach || '',
+                'Lagerort': [item.zone, item.regal, item.platz, item.fach].filter(Boolean).join(' › '),
+                'Menge': item.quantity || 1,
+                'Wert (CHF)': item.value || 0,
+                'Gesamtwert (CHF)': ((item.value || 0) * (item.quantity || 1)).toFixed(2),
+                'Notizen': item.notes || ''
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Inventar');
+            
+            // Column widths
+            ws['!cols'] = [
+                { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 25 },
+                { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+                { wch: 35 }, { wch: 8 }, { wch: 12 }, { wch: 15 }, { wch: 30 }
+            ];
+
+            const today = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Werkzeug-Inventar_${today}.xlsx`);
+        }
+
+        // Export to PDF
+        function exportToPDF() {
+            const filtered = getFilteredItems();
+            if (filtered.length === 0) {
+                alert('Keine Daten zum Exportieren vorhanden.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            // Title
+            doc.setFontSize(20);
+            doc.setTextColor(14, 165, 233);
+            doc.text('Werkzeug-Inventar', 14, 20);
+            
+            // Date and filter info
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            const today = new Date().toLocaleDateString('de-DE');
+            doc.text(`Exportiert am: ${today}`, 14, 28);
+            
+            const searchTerm = document.getElementById('searchInput').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const locationFilter = document.getElementById('locationFilter').value;
+            let filterText = 'Filter: ';
+            if (searchTerm) filterText += `Suche: "${searchTerm}" | `;
+            if (categoryFilter) filterText += `Kategorie: ${categoryFilter} | `;
+            if (locationFilter) filterText += `Lagerort: ${locationFilter} | `;
+            if (filterText === 'Filter: ') filterText += 'Keine Filter aktiv';
+            else filterText = filterText.slice(0, -3);
+            doc.text(filterText, 14, 34);
+            doc.text(`Anzahl: ${filtered.length} Werkzeuge`, 14, 40);
+
+            // Table
+            const tableData = filtered.map(item => [
+                item.name,
+                item.brand || '-',
+                item.mainCategory + (item.subCategory ? ' › ' + item.subCategory : ''),
+                [item.zone, item.regal, item.platz, item.fach].filter(Boolean).join(' › ') || '-',
+                item.quantity || 1,
+                `CHF ${(item.value || 0).toFixed(2)}`,
+                `CHF ${((item.value || 0) * (item.quantity || 1)).toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: 45,
+                head: [['Name', 'Marke', 'Kategorie', 'Lagerort', 'Menge', 'Einzelwert', 'Gesamtwert']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [30, 41, 59],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+                styles: { fontSize: 9, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 45 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 45 },
+                    3: { cellWidth: 60 },
+                    4: { cellWidth: 15, halign: 'center' },
+                    5: { cellWidth: 25, halign: 'right' },
+                    6: { cellWidth: 25, halign: 'right' }
+                }
+            });
+
+            // Total value
+            const totalValue = filtered.reduce((sum, i) => sum + ((i.value || 0) * (i.quantity || 1)), 0);
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text(`Gesamtwert: CHF ${totalValue.toFixed(2)}`, 14, finalY);
+
+            const todayFile = new Date().toISOString().split('T')[0];
+            doc.save(`Werkzeug-Inventar_${todayFile}.pdf`);
         }
     </script>
 </body>
