@@ -422,7 +422,14 @@
                 </div>
                 <div class="controls-bar">
                     <div class="controls-row">
+                        <select class="filter-select" id="zoneFilter" onchange="filterLocations()"><option value="">Alle Zonen</option></select>
+                        <select class="filter-select" id="regalFilter" onchange="filterLocations()"><option value="">Alle Regale</option></select>
                         <button class="btn btn-primary" onclick="openLocationModal()"><span>+</span><span>Lagerplatz erstellen</span></button>
+                    </div>
+                    <div class="controls-row" style="margin-top:12px; justify-content:flex-end;">
+                        <div class="export-buttons">
+                            <button class="btn btn-secondary btn-sm" onclick="openBulkLabelModal()"><span>🏷️</span><span>Etiketten drucken</span></button>
+                        </div>
                     </div>
                 </div>
                 <div class="items-grid" id="locationsGrid"></div>
@@ -545,25 +552,63 @@
     <div class="modal" id="locationModal">
         <div class="modal-content modal-sm">
             <div class="modal-header">
-                <h2 class="modal-title">Lagerplatz erstellen</h2>
+                <h2 class="modal-title" id="locationModalTitle">Lagerplatz erstellen</h2>
                 <button class="close-btn" onclick="closeLocationModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="locationForm" onsubmit="saveLocation(event)">
                     <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">📍</span>Lagerstruktur</h3>
                         <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Zone <span class="required">*</span></label><input type="text" class="form-input" id="locZone" required placeholder="z.B. Keller"></div>
-                            <div class="form-group"><label class="form-label">Regal</label><input type="text" class="form-input" id="locRegal" placeholder="z.B. Regal A"></div>
+                            <div class="form-group">
+                                <label class="form-label">Zone <span class="required">*</span></label>
+                                <select class="form-select" id="locZoneSelect" onchange="onZoneChange()">
+                                    <option value="">Neue Zone...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="locZoneNewGroup">
+                                <label class="form-label">Neue Zone</label>
+                                <input type="text" class="form-input" id="locZoneNew" placeholder="z.B. Keller">
+                            </div>
                         </div>
                         <div class="form-grid">
-                            <div class="form-group"><label class="form-label">Platz</label><input type="text" class="form-input" id="locPlatz" placeholder="z.B. Ebene 2"></div>
-                            <div class="form-group"><label class="form-label">Fach</label><input type="text" class="form-input" id="locFach" placeholder="z.B. Schublade 1"></div>
+                            <div class="form-group">
+                                <label class="form-label">Regal</label>
+                                <select class="form-select" id="locRegalSelect" onchange="onRegalChange()">
+                                    <option value="">Neues Regal...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="locRegalNewGroup">
+                                <label class="form-label">Neues Regal</label>
+                                <input type="text" class="form-input" id="locRegalNew" placeholder="z.B. Regal A">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Platz</label>
+                                <select class="form-select" id="locPlatzSelect" onchange="onPlatzChange()">
+                                    <option value="">Neuer Platz...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="locPlatzNewGroup">
+                                <label class="form-label">Neuer Platz</label>
+                                <input type="text" class="form-input" id="locPlatzNew" placeholder="z.B. Ebene 2">
+                            </div>
                         </div>
                         <div class="form-grid single">
-                            <div class="form-group"><label class="form-label">Beschreibung</label><textarea class="form-textarea" id="locationDescription" placeholder="Optionale Beschreibung"></textarea></div>
+                            <div class="form-group">
+                                <label class="form-label">Fach</label>
+                                <input type="text" class="form-input" id="locFach" placeholder="z.B. Schublade 1">
+                            </div>
+                        </div>
+                        <div class="form-grid single">
+                            <div class="form-group">
+                                <label class="form-label">Beschreibung</label>
+                                <textarea class="form-textarea" id="locationDescription" placeholder="Optionale Beschreibung"></textarea>
+                            </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><span>📦</span><span>Erstellen</span></button>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;" id="locationSubmitBtn"><span>📦</span><span>Erstellen</span></button>
                 </form>
                 <div id="qrCodeDisplay" style="display:none; margin-top:24px;">
                     <div class="qr-code-display">
@@ -572,6 +617,86 @@
                         <div class="qr-actions"><button class="btn btn-primary btn-sm" onclick="downloadQR()"><span>📥</span><span>Download</span></button></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Label Modal -->
+    <div class="modal" id="bulkLabelModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title">🏷️ Etiketten drucken</h2>
+                <button class="close-btn" onclick="closeBulkLabelModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-section">
+                    <p style="color:var(--text-secondary); margin-bottom:16px;">Wähle aus, welche Lagerplätze du als Etiketten drucken möchtest. Es werden 10 Etiketten pro A4-Seite erstellt.</p>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Zone</label>
+                            <select class="form-select" id="labelZoneSelect" onchange="updateLabelPreview()">
+                                <option value="">Alle Zonen</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Regal</label>
+                            <select class="form-select" id="labelRegalSelect" onchange="updateLabelPreview()">
+                                <option value="">Alle Regale</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid single">
+                        <div class="form-group">
+                            <label class="form-label">Platz</label>
+                            <select class="form-select" id="labelPlatzSelect" onchange="updateLabelPreview()">
+                                <option value="">Alle Plätze</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="background:var(--bg-hover); border-radius:var(--radius-md); padding:16px; margin-top:16px;">
+                        <div style="font-weight:600; margin-bottom:8px;">Vorschau:</div>
+                        <div id="labelPreviewCount" style="font-size:1.5rem; color:var(--color-primary); font-weight:700;">0 Etiketten</div>
+                        <div id="labelPreviewList" style="font-size:0.85rem; color:var(--text-secondary); margin-top:8px; max-height:150px; overflow-y:auto;"></div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:16px;" onclick="generateBulkLabels()"><span>📄</span><span>PDF erstellen</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Werkzeug auf Lagerplatz hinzufügen Modal -->
+    <div class="modal" id="addItemToLocationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Werkzeug einlagern</h2>
+                <button class="close-btn" onclick="closeAddItemToLocationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background:var(--bg-hover); border-radius:var(--radius-md); padding:16px; margin-bottom:20px;">
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Lagerplatz:</div>
+                    <div style="font-size:1.1rem; font-weight:600;" id="addItemLocationName"></div>
+                </div>
+                <form id="addItemToLocationForm" onsubmit="saveItemToLocation(event)">
+                    <div class="form-section">
+                        <h3 class="section-title"><span class="section-icon">📝</span>Werkzeug</h3>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Name <span class="required">*</span></label><input type="text" class="form-input" id="locItemName" required></div>
+                            <div class="form-group"><label class="form-label">Menge</label><input type="number" class="form-input" id="locItemQuantity" value="1" min="1"></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Marke</label><input type="text" class="form-input" id="locItemBrand"></div>
+                            <div class="form-group"><label class="form-label">Modell</label><input type="text" class="form-input" id="locItemModel"></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Hauptkategorie <span class="required">*</span></label><select class="form-select" id="locItemCategory" required onchange="updateLocItemSubCategory()"><option value="">Wählen...</option></select></div>
+                            <div class="form-group"><label class="form-label">Unterkategorie</label><select class="form-select" id="locItemSubCategory"><option value="">Keine</option></select></div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label">Wert (CHF)</label><input type="number" class="form-input" id="locItemValue" value="0" min="0" step="0.01"></div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;"><span>💾</span><span>Einlagern</span></button>
+                </form>
             </div>
         </div>
     </div>
@@ -986,12 +1111,42 @@
 
         // Render Locations
         function renderLocations() {
+            updateLocationFilters();
+            filterLocations();
+        }
+
+        function updateLocationFilters() {
+            const zones = [...new Set(locations.map(l => l.zone))].sort();
+            const zoneFilter = document.getElementById('zoneFilter');
+            const currentZone = zoneFilter.value;
+            zoneFilter.innerHTML = '<option value="">Alle Zonen</option>' + zones.map(z => `<option value="${z}">${z}</option>`).join('');
+            zoneFilter.value = currentZone;
+
+            const selectedZone = document.getElementById('zoneFilter').value;
+            const regale = [...new Set(locations.filter(l => !selectedZone || l.zone === selectedZone).map(l => l.regal).filter(Boolean))].sort();
+            const regalFilter = document.getElementById('regalFilter');
+            const currentRegal = regalFilter.value;
+            regalFilter.innerHTML = '<option value="">Alle Regale</option>' + regale.map(r => `<option value="${r}">${r}</option>`).join('');
+            regalFilter.value = regale.includes(currentRegal) ? currentRegal : '';
+        }
+
+        function filterLocations() {
             const grid = document.getElementById('locationsGrid');
-            if (locations.length === 0) {
+            const zoneFilter = document.getElementById('zoneFilter').value;
+            const regalFilter = document.getElementById('regalFilter').value;
+
+            let filtered = locations.filter(loc => {
+                const matchesZone = !zoneFilter || loc.zone === zoneFilter;
+                const matchesRegal = !regalFilter || loc.regal === regalFilter;
+                return matchesZone && matchesRegal;
+            });
+
+            if (filtered.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Keine Lagerplätze</div><div class="empty-text">Erstelle deinen ersten Lagerplatz</div><button class="btn btn-primary" onclick="openLocationModal()"><span>+</span><span>Erstellen</span></button></div>`;
                 return;
             }
-            grid.innerHTML = locations.map(loc => {
+
+            grid.innerHTML = filtered.map(loc => {
                 const itemCount = items.filter(i => i.zone === loc.zone && (!loc.regal || i.regal === loc.regal) && (!loc.platz || i.platz === loc.platz) && (!loc.fach || i.fach === loc.fach)).length;
                 const parts = [loc.zone, loc.regal, loc.platz, loc.fach].filter(Boolean);
                 return `
@@ -1001,17 +1156,21 @@
                             ${loc.description ? `<div class="item-brand">${loc.description}</div>` : ''}
                             <div class="location-hierarchy" style="margin:12px 0;">${parts.map(p => `<span class="location-part">${p}</span>`).join('<span class="location-separator">›</span>')}</div>
                             <div class="item-badges"><span class="badge badge-location">${itemCount} Werkzeuge</span></div>
-                            <div style="text-align:center; margin:16px 0;"><canvas id="qr-${loc.id}" style="max-width:150px;"></canvas><div class="qr-label" style="font-size:0.85rem;">${loc.name}</div></div>
-                            <div class="item-actions">
-                                <button class="btn btn-secondary btn-sm" onclick="downloadLocationQR('${loc.id}')">📥 QR</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteLocation('${loc.id}')">🗑️</button>
+                            <div style="text-align:center; margin:16px 0;"><canvas id="qr-${loc.id}" style="max-width:120px;"></canvas></div>
+                            <div class="item-actions" style="flex-wrap:wrap;">
+                                <button class="btn btn-primary btn-sm" onclick="openAddItemToLocation('${loc.id}')" title="Werkzeug einlagern">➕</button>
+                                <button class="btn btn-secondary btn-sm" onclick="editLocation('${loc.id}')" title="Bearbeiten">✏️</button>
+                                <button class="btn btn-secondary btn-sm" onclick="downloadLocationQR('${loc.id}')" title="QR Download">📥</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteLocation('${loc.id}')" title="Löschen">🗑️</button>
                             </div>
                         </div>
                     </div>`;
             }).join('');
-            locations.forEach(loc => {
+
+            filtered.forEach(loc => {
                 const canvas = document.getElementById(`qr-${loc.id}`);
-                if (canvas) QRCode.toCanvas(canvas, loc.id, { width: 150, margin: 1 });
+                if (canvas) QRCode.toCanvas(canvas, loc.id, { width: 120, margin: 1 });
+            });
             });
         }
 
@@ -1132,11 +1291,99 @@
 
         function closeModal() { document.getElementById('itemModal').classList.remove('active'); }
 
-        function openLocationModal() {
-            currentLocationId = null;
+        function openLocationModal(editId = null) {
+            currentLocationId = editId;
             document.getElementById('locationForm').reset();
             document.getElementById('qrCodeDisplay').style.display = 'none';
+            
+            // Populate zone dropdown
+            const zones = [...new Set(locations.map(l => l.zone))].sort();
+            document.getElementById('locZoneSelect').innerHTML = '<option value="">Neue Zone...</option>' + zones.map(z => `<option value="${z}">${z}</option>`).join('');
+            
+            if (editId) {
+                // Edit mode
+                const loc = locations.find(l => l.id === editId);
+                document.getElementById('locationModalTitle').textContent = 'Lagerplatz bearbeiten';
+                document.getElementById('locationSubmitBtn').innerHTML = '<span>💾</span><span>Speichern</span>';
+                
+                // Set zone
+                if (zones.includes(loc.zone)) {
+                    document.getElementById('locZoneSelect').value = loc.zone;
+                    document.getElementById('locZoneNewGroup').style.display = 'none';
+                } else {
+                    document.getElementById('locZoneSelect').value = '';
+                    document.getElementById('locZoneNew').value = loc.zone;
+                }
+                onZoneChange();
+                
+                // Set regal
+                const regale = [...new Set(locations.filter(l => l.zone === loc.zone).map(l => l.regal).filter(Boolean))].sort();
+                if (regale.includes(loc.regal)) {
+                    document.getElementById('locRegalSelect').value = loc.regal;
+                    document.getElementById('locRegalNewGroup').style.display = 'none';
+                } else if (loc.regal) {
+                    document.getElementById('locRegalSelect').value = '';
+                    document.getElementById('locRegalNew').value = loc.regal;
+                }
+                onRegalChange();
+                
+                // Set platz
+                const plaetze = [...new Set(locations.filter(l => l.zone === loc.zone && l.regal === loc.regal).map(l => l.platz).filter(Boolean))].sort();
+                if (plaetze.includes(loc.platz)) {
+                    document.getElementById('locPlatzSelect').value = loc.platz;
+                    document.getElementById('locPlatzNewGroup').style.display = 'none';
+                } else if (loc.platz) {
+                    document.getElementById('locPlatzSelect').value = '';
+                    document.getElementById('locPlatzNew').value = loc.platz;
+                }
+                
+                document.getElementById('locFach').value = loc.fach || '';
+                document.getElementById('locationDescription').value = loc.description || '';
+            } else {
+                // Create mode
+                document.getElementById('locationModalTitle').textContent = 'Lagerplatz erstellen';
+                document.getElementById('locationSubmitBtn').innerHTML = '<span>📦</span><span>Erstellen</span>';
+                document.getElementById('locZoneNewGroup').style.display = 'block';
+                document.getElementById('locRegalNewGroup').style.display = 'block';
+                document.getElementById('locPlatzNewGroup').style.display = 'block';
+                document.getElementById('locRegalSelect').innerHTML = '<option value="">Neues Regal...</option>';
+                document.getElementById('locPlatzSelect').innerHTML = '<option value="">Neuer Platz...</option>';
+            }
+            
             document.getElementById('locationModal').classList.add('active');
+        }
+
+        function onZoneChange() {
+            const selectedZone = document.getElementById('locZoneSelect').value;
+            document.getElementById('locZoneNewGroup').style.display = selectedZone ? 'none' : 'block';
+            document.getElementById('locZoneNew').required = !selectedZone;
+            
+            // Update regal dropdown based on selected zone
+            const regale = [...new Set(locations.filter(l => l.zone === selectedZone).map(l => l.regal).filter(Boolean))].sort();
+            document.getElementById('locRegalSelect').innerHTML = '<option value="">Neues Regal...</option>' + regale.map(r => `<option value="${r}">${r}</option>`).join('');
+            document.getElementById('locRegalNewGroup').style.display = 'block';
+            document.getElementById('locPlatzSelect').innerHTML = '<option value="">Neuer Platz...</option>';
+            document.getElementById('locPlatzNewGroup').style.display = 'block';
+        }
+
+        function onRegalChange() {
+            const selectedZone = document.getElementById('locZoneSelect').value;
+            const selectedRegal = document.getElementById('locRegalSelect').value;
+            document.getElementById('locRegalNewGroup').style.display = selectedRegal ? 'none' : 'block';
+            
+            // Update platz dropdown based on selected zone and regal
+            const plaetze = [...new Set(locations.filter(l => l.zone === selectedZone && l.regal === selectedRegal).map(l => l.platz).filter(Boolean))].sort();
+            document.getElementById('locPlatzSelect').innerHTML = '<option value="">Neuer Platz...</option>' + plaetze.map(p => `<option value="${p}">${p}</option>`).join('');
+            document.getElementById('locPlatzNewGroup').style.display = 'block';
+        }
+
+        function onPlatzChange() {
+            const selectedPlatz = document.getElementById('locPlatzSelect').value;
+            document.getElementById('locPlatzNewGroup').style.display = selectedPlatz ? 'none' : 'block';
+        }
+
+        function editLocation(id) {
+            openLocationModal(id);
         }
 
         function closeLocationModal() { document.getElementById('locationModal').classList.remove('active'); }
@@ -1308,22 +1555,241 @@
         // Save Location
         function saveLocation(event) {
             event.preventDefault();
-            const zone = document.getElementById('locZone').value;
-            const regal = document.getElementById('locRegal').value;
-            const platz = document.getElementById('locPlatz').value;
+            const zone = document.getElementById('locZoneSelect').value || document.getElementById('locZoneNew').value;
+            const regal = document.getElementById('locRegalSelect').value || document.getElementById('locRegalNew').value;
+            const platz = document.getElementById('locPlatzSelect').value || document.getElementById('locPlatzNew').value;
             const fach = document.getElementById('locFach').value;
+            
+            if (!zone) {
+                alert('Bitte gib eine Zone an.');
+                return;
+            }
+            
             const nameParts = [zone, regal, platz, fach].filter(Boolean);
             const loc = {
                 name: nameParts.join(' › '),
                 zone, regal, platz, fach,
                 description: document.getElementById('locationDescription').value,
-                createdAt: new Date().toISOString()
+                updatedAt: new Date().toISOString()
             };
-            const ref = database.ref('lagerplaetze').push(loc);
-            currentLocationId = ref.key;
-            document.getElementById('qrCodeDisplay').style.display = 'block';
-            document.getElementById('qrModalLabel').textContent = loc.name;
-            QRCode.toCanvas(document.getElementById('qrCanvas'), currentLocationId, { width: 250, margin: 2 });
+            
+            if (currentLocationId) {
+                // Update existing
+                database.ref('lagerplaetze/' + currentLocationId).update(loc);
+                closeLocationModal();
+            } else {
+                // Create new
+                loc.createdAt = new Date().toISOString();
+                const ref = database.ref('lagerplaetze').push(loc);
+                currentLocationId = ref.key;
+                document.getElementById('qrCodeDisplay').style.display = 'block';
+                document.getElementById('qrModalLabel').textContent = loc.name;
+                QRCode.toCanvas(document.getElementById('qrCanvas'), currentLocationId, { width: 250, margin: 2 });
+            }
+        }
+
+        // Add Item to Location
+        let addItemLocationId = null;
+        
+        function openAddItemToLocation(locId) {
+            addItemLocationId = locId;
+            const loc = locations.find(l => l.id === locId);
+            document.getElementById('addItemLocationName').textContent = loc.name;
+            document.getElementById('addItemToLocationForm').reset();
+            
+            // Populate category dropdown
+            const catSelect = document.getElementById('locItemCategory');
+            catSelect.innerHTML = '<option value="">Wählen...</option>' + categories.map(c => `<option value="${c.name}">${c.icon || '📁'} ${c.name}</option>`).join('');
+            
+            document.getElementById('addItemToLocationModal').classList.add('active');
+        }
+
+        function closeAddItemToLocationModal() {
+            document.getElementById('addItemToLocationModal').classList.remove('active');
+            addItemLocationId = null;
+        }
+
+        function updateLocItemSubCategory() {
+            const mainCat = document.getElementById('locItemCategory').value;
+            const subCat = document.getElementById('locItemSubCategory');
+            subCat.innerHTML = '<option value="">Keine</option>';
+            const cat = categories.find(c => c.name === mainCat);
+            if (cat && cat.subCategories) {
+                cat.subCategories.forEach(s => { subCat.innerHTML += `<option value="${s}">${s}</option>`; });
+            }
+        }
+
+        function saveItemToLocation(event) {
+            event.preventDefault();
+            const loc = locations.find(l => l.id === addItemLocationId);
+            
+            const item = {
+                name: document.getElementById('locItemName').value,
+                mainCategory: document.getElementById('locItemCategory').value,
+                subCategory: document.getElementById('locItemSubCategory').value,
+                brand: document.getElementById('locItemBrand').value,
+                model: document.getElementById('locItemModel').value,
+                quantity: parseInt(document.getElementById('locItemQuantity').value) || 1,
+                value: parseFloat(document.getElementById('locItemValue').value) || 0,
+                zone: loc.zone,
+                regal: loc.regal || '',
+                platz: loc.platz || '',
+                fach: loc.fach || '',
+                notes: '',
+                photo: null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            database.ref('werkzeuge').push(item);
+            closeAddItemToLocationModal();
+        }
+
+        // Bulk Label Modal
+        function openBulkLabelModal() {
+            // Populate dropdowns
+            const zones = [...new Set(locations.map(l => l.zone))].sort();
+            document.getElementById('labelZoneSelect').innerHTML = '<option value="">Alle Zonen</option>' + zones.map(z => `<option value="${z}">${z}</option>`).join('');
+            document.getElementById('labelRegalSelect').innerHTML = '<option value="">Alle Regale</option>';
+            document.getElementById('labelPlatzSelect').innerHTML = '<option value="">Alle Plätze</option>';
+            updateLabelPreview();
+            document.getElementById('bulkLabelModal').classList.add('active');
+        }
+
+        function closeBulkLabelModal() {
+            document.getElementById('bulkLabelModal').classList.remove('active');
+        }
+
+        function updateLabelPreview() {
+            const zoneFilter = document.getElementById('labelZoneSelect').value;
+            const regalFilter = document.getElementById('labelRegalSelect').value;
+            const platzFilter = document.getElementById('labelPlatzSelect').value;
+
+            // Update cascading dropdowns
+            if (zoneFilter) {
+                const regale = [...new Set(locations.filter(l => l.zone === zoneFilter).map(l => l.regal).filter(Boolean))].sort();
+                document.getElementById('labelRegalSelect').innerHTML = '<option value="">Alle Regale</option>' + regale.map(r => `<option value="${r}">${r}</option>`).join('');
+            }
+            if (zoneFilter && regalFilter) {
+                const plaetze = [...new Set(locations.filter(l => l.zone === zoneFilter && l.regal === regalFilter).map(l => l.platz).filter(Boolean))].sort();
+                document.getElementById('labelPlatzSelect').innerHTML = '<option value="">Alle Plätze</option>' + plaetze.map(p => `<option value="${p}">${p}</option>`).join('');
+            }
+
+            // Filter locations
+            const filtered = locations.filter(loc => {
+                const matchesZone = !zoneFilter || loc.zone === zoneFilter;
+                const matchesRegal = !regalFilter || loc.regal === regalFilter;
+                const matchesPlatz = !platzFilter || loc.platz === platzFilter;
+                return matchesZone && matchesRegal && matchesPlatz;
+            });
+
+            document.getElementById('labelPreviewCount').textContent = `${filtered.length} Etiketten`;
+            document.getElementById('labelPreviewList').innerHTML = filtered.slice(0, 10).map(l => `<div style="padding:4px 0; border-bottom:1px solid var(--border-color);">${l.name}</div>`).join('') + (filtered.length > 10 ? `<div style="padding:4px 0; color:var(--text-muted);">... und ${filtered.length - 10} weitere</div>` : '');
+        }
+
+        function generateBulkLabels() {
+            const zoneFilter = document.getElementById('labelZoneSelect').value;
+            const regalFilter = document.getElementById('labelRegalSelect').value;
+            const platzFilter = document.getElementById('labelPlatzSelect').value;
+
+            const filtered = locations.filter(loc => {
+                const matchesZone = !zoneFilter || loc.zone === zoneFilter;
+                const matchesRegal = !regalFilter || loc.regal === regalFilter;
+                const matchesPlatz = !platzFilter || loc.platz === platzFilter;
+                return matchesZone && matchesRegal && matchesPlatz;
+            });
+
+            if (filtered.length === 0) {
+                alert('Keine Lagerplätze zum Drucken ausgewählt.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('portrait', 'mm', 'a4');
+            
+            // 10 labels per page: 2 columns x 5 rows
+            const labelWidth = 90;  // mm
+            const labelHeight = 50; // mm
+            const marginX = 15;     // mm from edge
+            const marginY = 20;     // mm from top
+            const gapX = 5;         // mm between columns
+            const gapY = 8;         // mm between rows
+            
+            let labelIndex = 0;
+            
+            filtered.forEach((loc, i) => {
+                if (i > 0 && i % 10 === 0) {
+                    doc.addPage();
+                }
+                
+                const posInPage = i % 10;
+                const col = posInPage % 2;
+                const row = Math.floor(posInPage / 2);
+                
+                const x = marginX + col * (labelWidth + gapX);
+                const y = marginY + row * (labelHeight + gapY);
+                
+                // Label border
+                doc.setDrawColor(200);
+                doc.setLineWidth(0.3);
+                doc.roundedRect(x, y, labelWidth, labelHeight, 3, 3);
+                
+                // QR Code placeholder area (will be filled by canvas)
+                const qrSize = 30;
+                const qrX = x + 5;
+                const qrY = y + 5;
+                
+                // Create QR code as data URL
+                const tempCanvas = document.createElement('canvas');
+                QRCode.toCanvas(tempCanvas, loc.id, { width: 150, margin: 0 }, function() {
+                    const qrDataUrl = tempCanvas.toDataURL('image/png');
+                    doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+                });
+                
+                // Text area
+                const textX = x + qrSize + 10;
+                const textWidth = labelWidth - qrSize - 15;
+                
+                // Location name (bold, larger)
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'bold');
+                const nameParts = [loc.zone, loc.regal, loc.platz, loc.fach].filter(Boolean);
+                
+                // Zone (largest)
+                doc.setFontSize(12);
+                doc.text(loc.zone || '', textX, y + 12);
+                
+                // Regal
+                if (loc.regal) {
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(loc.regal, textX, y + 20);
+                }
+                
+                // Platz
+                if (loc.platz) {
+                    doc.setFontSize(9);
+                    doc.text(loc.platz, textX, y + 27);
+                }
+                
+                // Fach
+                if (loc.fach) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(100);
+                    doc.text(loc.fach, textX, y + 34);
+                    doc.setTextColor(0);
+                }
+                
+                // Full path at bottom
+                doc.setFontSize(6);
+                doc.setTextColor(128);
+                doc.text(loc.name, x + 5, y + labelHeight - 4);
+                doc.setTextColor(0);
+            });
+
+            const today = new Date().toISOString().split('T')[0];
+            doc.save(`Lagerplatz-Etiketten_${today}.pdf`);
+            closeBulkLabelModal();
         }
 
         // Delete Location (move to trash)
