@@ -802,8 +802,12 @@
         const database = firebase.database();
         const auth = firebase.auth();
         
-        // Auth Persistence - bleibt eingeloggt auch nach Browser-Schliessung
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        // Auth Persistence - für Mobile Browser optimiert
+        // IndexedDB funktioniert besser auf Mobile als localStorage
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch((error) => {
+                console.log('Persistence error:', error);
+            });
 
         // State
         let items = [];
@@ -817,6 +821,7 @@
         let relocateItemId = null;
         let tempSubCategories = [];
         let html5QrCode = null;
+        let appInitialized = false; // Verhindert mehrfache Initialisierung
 
         // Mobile Menu Toggle
         function toggleMobileMenu() {
@@ -831,10 +836,14 @@
             if (user) {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
-                initApp();
+                if (!appInitialized) {
+                    initApp();
+                    appInitialized = true;
+                }
             } else {
                 document.getElementById('loginScreen').style.display = 'flex';
                 document.getElementById('appContainer').style.display = 'none';
+                appInitialized = false;
             }
         });
 
@@ -844,23 +853,30 @@
             const password = document.getElementById('loginPassword').value;
             const errorDiv = document.getElementById('loginError');
             errorDiv.classList.remove('show');
-            auth.signInWithEmailAndPassword(email, password).catch((error) => {
-                errorDiv.textContent = 'Anmeldung fehlgeschlagen: ' + error.message;
-                errorDiv.classList.add('show');
-            });
+            
+            // Setze Persistence vor dem Login (wichtig für Mobile!)
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    return auth.signInWithEmailAndPassword(email, password);
+                })
+                .catch((error) => {
+                    errorDiv.textContent = 'Anmeldung fehlgeschlagen: ' + error.message;
+                    errorDiv.classList.add('show');
+                });
         }
 
         function handleLogout() { auth.signOut(); }
 
         // Init App
         function initApp() {
-            // Connection Status
-            database.ref('.info/connected').on('value', (snap) => {
-                const dot = document.getElementById('connectionDot');
-                const text = document.getElementById('connectionText');
-                if (snap.val() === true) { dot.classList.add('connected'); text.textContent = 'Verbunden'; }
-                else { dot.classList.remove('connected'); text.textContent = 'Nicht verbunden'; }
-            });
+            try {
+                // Connection Status
+                database.ref('.info/connected').on('value', (snap) => {
+                    const dot = document.getElementById('connectionDot');
+                    const text = document.getElementById('connectionText');
+                    if (snap.val() === true) { dot.classList.add('connected'); text.textContent = 'Verbunden'; }
+                    else { dot.classList.remove('connected'); text.textContent = 'Nicht verbunden'; }
+                });
 
             // Load Data
             database.ref('werkzeuge').on('value', (snapshot) => {
@@ -922,6 +938,10 @@
             document.getElementById('locationFilter').addEventListener('change', renderItems);
             document.getElementById('sortSelect').addEventListener('change', renderItems);
             document.getElementById('newSubCat').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSubCatTag(); } });
+            
+            } catch (error) {
+                console.error('initApp Error:', error);
+            }
         }
 
         // Default Kategorien erstellen
