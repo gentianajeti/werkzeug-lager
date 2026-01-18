@@ -801,6 +801,9 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
+        
+        // Auth Persistence - bleibt eingeloggt auch nach Browser-Schliessung
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         // State
         let items = [];
