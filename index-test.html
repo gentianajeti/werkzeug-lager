@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Werkzeug-Lager Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1e293b; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { background: #334155; padding: 40px; border-radius: 16px; max-width: 400px; width: 90%; }
+        h1 { margin-bottom: 20px; text-align: center; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; }
+        input { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; }
+        button { width: 100%; padding: 14px; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0284c7; }
+        .error { background: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
+        .success { background: #10b981; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
+        .status { text-align: center; margin-top: 20px; font-size: 14px; color: #94a3b8; }
+        #app { display: none; }
+        #app h2 { margin-bottom: 20px; }
+        .item { background: #475569; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div class="container" id="loginBox">
+        <h1>🔧 Werkzeug Test</h1>
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>E-Mail</label>
+                <input type="email" id="email" required placeholder="deine@email.com">
+            </div>
+            <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" id="loginBtn">Anmelden</button>
+        </form>
+        <div class="status" id="status">Lade Firebase...</div>
+    </div>
+
+    <!-- App -->
+    <div class="container" id="app">
+        <h2>✅ Eingeloggt!</h2>
+        <p id="userEmail"></p>
+        <div id="itemCount" class="item">Werkzeuge: Lade...</div>
+        <button onclick="logout()">Ausloggen</button>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0zgleUPBvmS7VD8-xFGRR5FGlhJs2Ifc",
+            authDomain: "werkzeuglager-home.firebaseapp.com",
+            databaseURL: "https://werkzeuglager-home-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "werkzeuglager-home",
+            storageBucket: "werkzeuglager-home.firebasestorage.app",
+            messagingSenderId: "360393799164",
+            appId: "1:360393799164:web:d95f8242900e577690ae79"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        const statusEl = document.getElementById('status');
+        const errorEl = document.getElementById('error');
+        const successEl = document.getElementById('success');
+        const loginBox = document.getElementById('loginBox');
+        const appBox = document.getElementById('app');
+
+        statusEl.textContent = 'Firebase geladen ✓';
+
+        // Auth State
+        auth.onAuthStateChanged((user) => {
+            console.log('Auth changed:', user ? user.email : 'null');
+            statusEl.textContent = 'Auth: ' + (user ? user.email : 'Nicht eingeloggt');
+            
+            if (user) {
+                loginBox.style.display = 'none';
+                appBox.style.display = 'block';
+                document.getElementById('userEmail').textContent = 'User: ' + user.email;
+                
+                // Lade Werkzeuge
+                database.ref('werkzeuge').once('value', (snap) => {
+                    const count = snap.numChildren();
+                    document.getElementById('itemCount').textContent = 'Werkzeuge: ' + count;
+                });
+            } else {
+                loginBox.style.display = 'block';
+                appBox.style.display = 'none';
+            }
+        });
+
+        // Login Form
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            
+            errorEl.style.display = 'none';
+            btn.textContent = 'Anmelden...';
+            btn.disabled = true;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then((result) => {
+                    console.log('Login OK:', result.user.email);
+                    successEl.textContent = 'Erfolgreich eingeloggt!';
+                    successEl.style.display = 'block';
+                })
+                .catch((error) => {
+                    console.error('Login Error:', error);
+                    errorEl.textContent = error.message;
+                    errorEl.style.display = 'block';
+                    btn.textContent = 'Anmelden';
+                    btn.disabled = false;
+                });
+        });
+
+        function logout() {
+            auth.signOut();
+        }
+    </script>
+</body>
+</html>
