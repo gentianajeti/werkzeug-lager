@@ -891,14 +891,13 @@
 
         // Init App
         function initApp() {
-            try {
-                // Connection Status
-                database.ref('.info/connected').on('value', (snap) => {
-                    const dot = document.getElementById('connectionDot');
-                    const text = document.getElementById('connectionText');
-                    if (snap.val() === true) { dot.classList.add('connected'); text.textContent = 'Verbunden'; }
-                    else { dot.classList.remove('connected'); text.textContent = 'Nicht verbunden'; }
-                });
+            // Connection Status
+            database.ref('.info/connected').on('value', (snap) => {
+                const dot = document.getElementById('connectionDot');
+                const text = document.getElementById('connectionText');
+                if (snap.val() === true) { dot.classList.add('connected'); text.textContent = 'Verbunden'; }
+                else { dot.classList.remove('connected'); text.textContent = 'Nicht verbunden'; }
+            });
 
             // Load Data
             database.ref('werkzeuge').on('value', (snapshot) => {
@@ -960,10 +959,6 @@
             document.getElementById('locationFilter').addEventListener('change', renderItems);
             document.getElementById('sortSelect').addEventListener('change', renderItems);
             document.getElementById('newSubCat').addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSubCatTag(); } });
-            
-            } catch (error) {
-                console.error('initApp Error:', error);
-            }
         }
 
         // Default Kategorien erstellen
